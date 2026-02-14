@@ -2,9 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Surgenius.Api.Models;
 
-/// <summary>
-/// Represents a user in the Surgenius system.
-/// </summary>
+
 public class User
 {
     [Key]
@@ -27,6 +25,6 @@ public class User
     [MaxLength(50)]
     public required string Role { get; set; }
 
-    // Navigation properties
+   
     public ICollection<Case> Cases { get; set; } = new List<Case>();
 }

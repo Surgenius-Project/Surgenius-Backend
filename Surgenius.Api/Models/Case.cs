@@ -3,9 +3,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Surgenius.Api.Models;
 
-/// <summary>
-/// Represents a medical case in the Surgenius system.
-/// </summary>
 public class Case
 {
     [Key]
@@ -22,7 +19,7 @@ public class Case
     [Required]
     public DateTime CreationDate { get; set; }
 
-    // Navigation properties
+
     public User User { get; set; } = null!;
     public ICollection<Scan> Scans { get; set; } = new List<Scan>();
 }
