@@ -1,0 +1,6 @@
+@Surgenius.Api_HostAddress = http://localhost:5157
+
+GET {{Surgenius.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
