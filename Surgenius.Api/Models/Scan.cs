@@ -3,9 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Surgenius.Api.Models;
 
-/// <summary>
-/// Represents a medical scan associated with a case.
-/// </summary>
+
 public class Scan
 {
     [Key]
@@ -26,7 +24,7 @@ public class Scan
     [Required]
     public DateTime UploadDate { get; set; }
 
-    // Navigation properties
+
     public Case Case { get; set; } = null!;
     public ThreeDModel? ThreeDModel { get; set; }
     public AnalysisResult? AnalysisResult { get; set; }

@@ -3,9 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Surgenius.Api.Models;
 
-/// <summary>
-/// Represents a 3D model generated from a scan (tumor and liver models).
-/// </summary>
+
 public class ThreeDModel
 {
     [Key]
@@ -21,6 +19,5 @@ public class ThreeDModel
     [MaxLength(500)]
     public string? LiverModelPath { get; set; }
 
-    // Navigation properties
     public Scan Scan { get; set; } = null!;
 }

@@ -3,9 +3,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Surgenius.Api.Models;
 
-/// <summary>
-/// Represents the analysis result generated from a scan.
-/// </summary>
 public class AnalysisResult
 {
     [Key]
@@ -27,6 +24,6 @@ public class AnalysisResult
     [Range(0, 1)]
     public decimal? ConfidenceScore { get; set; }
 
-    // Navigation properties
+
     public Scan Scan { get; set; } = null!;
 }
