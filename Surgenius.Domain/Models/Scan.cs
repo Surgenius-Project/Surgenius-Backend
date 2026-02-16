@@ -7,7 +7,7 @@ namespace Surgenius.Domain.Models;
 public class Scan
 {
     public Guid Id { get; set;}
-    public int CaseID { get; set; }
+    public Guid CaseID { get; set; }
     public required string ScanPath { get; set; }
     public required string ScanType { get; set; }
 

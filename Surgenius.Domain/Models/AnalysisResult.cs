@@ -8,7 +8,7 @@ public class AnalysisResult
   
     public Guid Id { get; set; }
 
-    public int ScanID { get; set; }
+    public Guid ScanID { get; set; }
 
     public string? TumorStage { get; set; }
 
