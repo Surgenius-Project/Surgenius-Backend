@@ -1,29 +1,17 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace Surgenius.Api.Models;
+namespace Surgenius.Domain.Models;
 
 
 public class Scan
 {
-    [Key]
-    public int ScanID { get; set; }
-
-    [Required]
-    [ForeignKey(nameof(Case))]
+    public Guid Id { get; set;}
     public int CaseID { get; set; }
-
-    [Required]
-    [MaxLength(500)]
     public required string ScanPath { get; set; }
-
-    [Required]
-    [MaxLength(100)]
     public required string ScanType { get; set; }
 
-    [Required]
     public DateTime UploadDate { get; set; }
-
 
     public Case Case { get; set; } = null!;
     public ThreeDModel? ThreeDModel { get; set; }

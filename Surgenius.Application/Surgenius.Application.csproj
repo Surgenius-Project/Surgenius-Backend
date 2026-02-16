@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Surgenius.Domain\Surgenius.Domain.csproj" />
+    <ProjectReference Include="..\Surgenius.Infrastructure\Surgenius.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>
