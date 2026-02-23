@@ -9,6 +9,9 @@ namespace Surgenius.Infrastructure.Configurations
         public void Configure(EntityTypeBuilder<AnalysisResult> builder)
         {
             builder.HasKey(a => a.Id);
+
+            builder.Property(a => a.ConfidenceScore)
+                .HasPrecision(18, 2);
         }
     }
 }
