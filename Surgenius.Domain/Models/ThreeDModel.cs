@@ -8,7 +8,7 @@ public class ThreeDModel
 {
     public Guid Id { get; set; }
 
-    public Guid ScanID { get; set; }
+    public Guid ScanId { get; set; }
 
     public string? TumorModelPath { get; set; }
 

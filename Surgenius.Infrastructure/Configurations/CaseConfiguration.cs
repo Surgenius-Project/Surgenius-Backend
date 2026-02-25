@@ -18,7 +18,7 @@ namespace Surgenius.Infrastructure.Configurations
 
             builder.HasOne(c => c.User)
                 .WithMany(u => u.Cases)
-                .HasForeignKey(c => c.UserID)
+                .HasForeignKey(c => c.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
         }
     }

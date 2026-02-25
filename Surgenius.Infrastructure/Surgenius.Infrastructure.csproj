@@ -7,9 +7,14 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.1" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.13" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.13" />
 		<ProjectReference Include="..\Surgenius.Domain\Surgenius.Domain.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\Surgenius.Application\Surgenius.Application.csproj" />
 	</ItemGroup>
 
 </Project>

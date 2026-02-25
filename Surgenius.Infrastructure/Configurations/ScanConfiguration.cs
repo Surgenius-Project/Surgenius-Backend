@@ -21,17 +21,17 @@ namespace Surgenius.Infrastructure.Configurations
 
             builder.HasOne(s => s.Case)
                 .WithMany(c => c.Scans)
-                .HasForeignKey(s => s.CaseID)
+                .HasForeignKey(s => s.CaseId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             builder.HasOne(s => s.ThreeDModel)
                 .WithOne(t => t.Scan)
-                .HasForeignKey<ThreeDModel>(t => t.ScanID)
+                .HasForeignKey<ThreeDModel>(t => t.ScanId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             builder.HasOne(s => s.AnalysisResult)
                 .WithOne(a => a.Scan)
-                .HasForeignKey<AnalysisResult>(a => a.ScanID)
+                .HasForeignKey<AnalysisResult>(a => a.ScanId)
                 .OnDelete(DeleteBehavior.Cascade);
         }
     }

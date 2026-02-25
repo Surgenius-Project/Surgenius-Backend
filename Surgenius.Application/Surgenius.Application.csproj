@@ -8,7 +8,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Surgenius.Domain\Surgenius.Domain.csproj" />
-    <ProjectReference Include="..\Surgenius.Infrastructure\Surgenius.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
