@@ -32,11 +32,4 @@ public class AuthController : ControllerBase
 
         return Ok(response);
     }
-
-    [HttpGet("doctors")]
-    public async Task<IActionResult> GetDoctors()
-    {
-        var doctors = await _identityService.GetDoctorsAsync();
-        return Ok(doctors);
-    }
 }

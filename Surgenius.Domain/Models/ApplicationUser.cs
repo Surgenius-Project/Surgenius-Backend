@@ -7,6 +7,7 @@ public class ApplicationUser : IdentityUser<Guid>
 {
     public required string FullName { get; set; }
     public UserType UserType { get; set; }
+    public string? InviteCode { get; set; }
 
     public Guid? DoctorId { get; set; }
     public ApplicationUser? Doctor { get; set; }

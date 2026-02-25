@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Extensions.Configuration;
+using Microsoft.EntityFrameworkCore;
 using Surgenius.Application.Models.DTOs;
 using Surgenius.Application.Interfaces;
 using Surgenius.Domain.Models;
@@ -28,9 +29,24 @@ public class IdentityService : IIdentityService
             UserName = request.Email,
             Email = request.Email,
             FullName = request.FullName,
-            UserType = request.UserType,
-            DoctorId = request.UserType == Domain.Enums.UserType.Student ? request.DoctorId : null
+            UserType = request.UserType
         };
+
+        if (request.UserType == Domain.Enums.UserType.Doctor)
+        {
+            // Generate unique invite code for doctor
+            user.InviteCode = GenerateUniqueInviteCode(request.FullName);
+        }
+        else if (request.UserType == Domain.Enums.UserType.Student)
+        {
+            if (string.IsNullOrEmpty(request.InviteCode)) return null;
+
+            var doctor = await _userManager.Users
+                .FirstOrDefaultAsync(u => u.InviteCode == request.InviteCode && u.UserType == Domain.Enums.UserType.Doctor);
+            
+            if (doctor == null) return null;
+            user.DoctorId = doctor.Id;
+        }
 
         var result = await _userManager.CreateAsync(user, request.Password);
         if (!result.Succeeded) return null;
@@ -47,25 +63,6 @@ public class IdentityService : IIdentityService
             return null;
 
         return await GenerateAuthResponse(user);
-    }
-
-    public async Task<IEnumerable<AuthResponse>> GetDoctorsAsync()
-    {
-        var doctors = await _userManager.GetUsersInRoleAsync("Doctor");
-        var result = new List<AuthResponse>();
-
-        foreach (var doctor in doctors)
-        {
-            result.Add(new AuthResponse
-            {
-                Id = doctor.Id,
-                FullName = doctor.FullName,
-                Email = doctor.Email!,
-                Role = "Doctor"
-            });
-        }
-
-        return result;
     }
 
     private async Task<AuthResponse?> GenerateAuthResponse(ApplicationUser user)
@@ -101,7 +98,15 @@ public class IdentityService : IIdentityService
             Token = new JwtSecurityTokenHandler().WriteToken(token),
             FullName = user.FullName,
             Email = user.Email!,
-            Role = role
+            Role = role,
+            InviteCode = user.InviteCode
         };
+    }
+
+    private string GenerateUniqueInviteCode(string fullName)
+    {
+        var prefix = fullName.Length >= 3 ? fullName.Substring(0, 3).ToUpper() : "DOC";
+        var random = new Random().Next(1000, 9999);
+        return $"{prefix}-{random}";
     }
 }

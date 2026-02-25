@@ -19,7 +19,7 @@ public class RegisterRequest
     [Required]
     public UserType UserType { get; set; }
 
-    public Guid? DoctorId { get; set; }
+    public string? InviteCode { get; set; }
 }
 
 public class LoginRequest
@@ -39,4 +39,5 @@ public class AuthResponse
     public string FullName { get; set; } = null!;
     public string Email { get; set; } = null!;
     public string Role { get; set; } = null!;
+    public string? InviteCode { get; set; }
 }
