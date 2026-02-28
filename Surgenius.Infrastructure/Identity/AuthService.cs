@@ -1,28 +1,24 @@
 using Microsoft.AspNetCore.Identity;
-using Microsoft.IdentityModel.Tokens;
-using Microsoft.Extensions.Configuration;
 using Microsoft.EntityFrameworkCore;
-using Surgenius.Application.Models.DTOs;
+using Surgenius.Application.Models.DTOs.Auth;
+using Surgenius.Application.Models.Responses;
 using Surgenius.Application.Interfaces;
 using Surgenius.Domain.Models;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
 
 namespace Surgenius.Infrastructure.Identity;
 
-public class IdentityService : IIdentityService
+public class AuthService : IAuthService
 {
     private readonly UserManager<ApplicationUser> _userManager;
-    private readonly IConfiguration _configuration;
+    private readonly ITokenService _tokenService;
 
-    public IdentityService(UserManager<ApplicationUser> userManager, IConfiguration configuration)
+    public AuthService(UserManager<ApplicationUser> userManager, ITokenService tokenService)
     {
         _userManager = userManager;
-        _configuration = configuration;
+        _tokenService = tokenService;
     }
 
-    public async Task<AuthResponse?> RegisterAsync(RegisterRequest request)
+    public async Task<ApiResponse<AuthResponseDto>> RegisterAsync(RegisterRequestDto request)
     {
         var user = new ApplicationUser
         {
@@ -34,73 +30,61 @@ public class IdentityService : IIdentityService
 
         if (request.UserType == Domain.Enums.UserType.Doctor)
         {
-            // Generate unique invite code for doctor
             user.InviteCode = GenerateUniqueInviteCode(request.FullName);
         }
         else if (request.UserType == Domain.Enums.UserType.Student)
         {
-            if (string.IsNullOrEmpty(request.InviteCode)) return null;
+            if (string.IsNullOrEmpty(request.InviteCode))
+                return ApiResponse<AuthResponseDto>.Failure("Student registration requires an invite code.");
 
             var doctor = await _userManager.Users
                 .FirstOrDefaultAsync(u => u.InviteCode == request.InviteCode && u.UserType == Domain.Enums.UserType.Doctor);
-            
-            if (doctor == null) return null;
+
+            if (doctor == null)
+                return ApiResponse<AuthResponseDto>.Failure("Invalid invite code.");
+
             user.DoctorId = doctor.Id;
         }
 
         var result = await _userManager.CreateAsync(user, request.Password);
-        if (!result.Succeeded) return null;
+        if (!result.Succeeded)
+        {
+            var errors = result.Errors.Select(e => e.Description).ToList();
+            return ApiResponse<AuthResponseDto>.Failure("Registration failed.", errors);
+        }
 
         await _userManager.AddToRoleAsync(user, request.UserType.ToString());
 
         return await GenerateAuthResponse(user);
     }
 
-    public async Task<AuthResponse?> LoginAsync(LoginRequest request)
+    public async Task<ApiResponse<AuthResponseDto>> LoginAsync(LoginRequestDto request)
     {
         var user = await _userManager.FindByEmailAsync(request.Email);
         if (user == null || !await _userManager.CheckPasswordAsync(user, request.Password))
-            return null;
+            return ApiResponse<AuthResponseDto>.Failure("Invalid email or password.");
 
         return await GenerateAuthResponse(user);
     }
 
-    private async Task<AuthResponse?> GenerateAuthResponse(ApplicationUser user)
+    private async Task<ApiResponse<AuthResponseDto>> GenerateAuthResponse(ApplicationUser user)
     {
         var roles = await _userManager.GetRolesAsync(user);
         var role = roles.FirstOrDefault() ?? "No Role";
 
-        var claims = new List<Claim>
-        {
-            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new Claim(ClaimTypes.Email, user.Email!),
-            new Claim(ClaimTypes.Name, user.FullName),
-            new Claim(ClaimTypes.Role, role)
-        };
+        var token = _tokenService.GenerateToken(user, role);
 
-        var keyString = _configuration["Jwt:Key"];
-        if (string.IsNullOrEmpty(keyString)) return null;
-
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(keyString));
-        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-        var token = new JwtSecurityToken(
-            issuer: _configuration["Jwt:Issuer"],
-            audience: _configuration["Jwt:Audience"],
-            claims: claims,
-            expires: DateTime.Now.AddDays(7),
-            signingCredentials: creds
-        );
-
-        return new AuthResponse
+        var response = new AuthResponseDto
         {
             Id = user.Id,
-            Token = new JwtSecurityTokenHandler().WriteToken(token),
+            Token = token,
             FullName = user.FullName,
             Email = user.Email!,
             Role = role,
             InviteCode = user.InviteCode
         };
+
+        return ApiResponse<AuthResponseDto>.Success(response);
     }
 
     private string GenerateUniqueInviteCode(string fullName)
