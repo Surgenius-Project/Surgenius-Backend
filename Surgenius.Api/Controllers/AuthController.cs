@@ -1,6 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
-using Surgenius.Application.Models.DTOs.Auth;
-using Surgenius.Application.Interfaces;
+using Surgenius.Application.Models.DTOs.Auth.Login;
+using Surgenius.Application.Models.DTOs.Auth.Register;
+using Surgenius.Application.Models.DTOs.Auth.Refresh;
+using Surgenius.Application.Models.DTOs.Auth.Responses;
+using Surgenius.Application.Models.DTOs.Auth.Email;
+using Surgenius.Application.Interfaces.Auth;
 
 namespace Surgenius.Api.Controllers;
 
@@ -53,6 +57,26 @@ public class AuthController : ControllerBase
         if (userId == null) return Unauthorized();
 
         var response = await _authService.RevokeTokenAsync(userId);
+        if (!response.IsSuccess)
+            return BadRequest(response);
+
+        return Ok(response);
+    }
+
+    [HttpPost("confirm-email")]
+    public async Task<IActionResult> ConfirmEmail([FromBody] ConfirmEmailRequestDto request)
+    {
+        var response = await _authService.ConfirmEmailAsync(request);
+        if (!response.IsSuccess)
+            return BadRequest(response);
+
+        return Ok(response);
+    }
+
+    [HttpPost("resend-confirmation-email")]
+    public async Task<IActionResult> ResendConfirmationEmail([FromBody] ResendEmailConfirmationDto request)
+    {
+        var response = await _authService.ResendConfirmationEmailAsync(request);
         if (!response.IsSuccess)
             return BadRequest(response);
 

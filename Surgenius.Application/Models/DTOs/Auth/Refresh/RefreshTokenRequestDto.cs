@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Surgenius.Application.Models.DTOs.Auth;
+namespace Surgenius.Application.Models.DTOs.Auth.Refresh;
 
 public class RefreshTokenRequestDto
 {

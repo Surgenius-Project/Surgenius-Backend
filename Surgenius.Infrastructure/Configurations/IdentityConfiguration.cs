@@ -2,8 +2,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Surgenius.Application.Interfaces;
+using Surgenius.Application.Interfaces.Auth;
+using Surgenius.Application.Interfaces.Email;
 using Surgenius.Infrastructure.Identity;
+using Surgenius.Infrastructure.Services.Email;
 using Surgenius.Domain.Models;
 using Surgenius.Infrastructure.Data.Context;
 
@@ -23,12 +25,15 @@ public static class IdentityConfiguration
             options.Password.RequireUppercase = true;
             options.Password.RequiredLength = 8;
             options.User.RequireUniqueEmail = true;
+            options.SignIn.RequireConfirmedEmail = true;
         })
         .AddRoles<IdentityRole<Guid>>()
-        .AddEntityFrameworkStores<AppDbContext>();
+        .AddEntityFrameworkStores<AppDbContext>()
+        .AddDefaultTokenProviders();
 
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<ITokenService, TokenService>();
+        services.AddScoped<IEmailService, EmailService>();
 
         return services;
     }

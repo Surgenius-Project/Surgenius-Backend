@@ -1,7 +1,7 @@
 using Surgenius.Domain.Enums;
 using System.ComponentModel.DataAnnotations;
 
-namespace Surgenius.Application.Models.DTOs.Auth;
+namespace Surgenius.Application.Models.DTOs.Auth.Register;
 
 public class RegisterRequestDto
 {

@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
-using Surgenius.Application.Interfaces;
+using Surgenius.Application.Interfaces.Auth;
 using Surgenius.Domain.Models;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
