@@ -14,4 +14,5 @@ public class ApplicationUser : IdentityUser<Guid>
     public ICollection<ApplicationUser> Students { get; set; } = new List<ApplicationUser>();
 
     public ICollection<Case> Cases { get; set; } = new List<Case>();
+    public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
 }
