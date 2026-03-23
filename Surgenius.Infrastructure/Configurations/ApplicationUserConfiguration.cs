@@ -19,9 +19,6 @@ public class ApplicationUserConfiguration : IEntityTypeConfiguration<Application
                .WithOne(c => c.User)
                .HasForeignKey(c => c.UserId);
 
-        builder.HasMany(u => u.RefreshTokens)
-               .WithOne(t => t.User)
-               .HasForeignKey(t => t.UserId)
-               .OnDelete(DeleteBehavior.Cascade);
+       
     }
 }
