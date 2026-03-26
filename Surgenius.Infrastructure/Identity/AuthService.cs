@@ -7,6 +7,10 @@ using Surgenius.Application.Models.Responses;
 using Surgenius.Application.Interfaces.Auth;
 using Surgenius.Domain.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http;
+using Surgenius.Application.Interfaces.Email;
+using Microsoft.AspNetCore.WebUtilities;
+using System.Text;
 
 namespace Surgenius.Infrastructure.Identity;
 
@@ -14,13 +18,19 @@ public class AuthService : IAuthService
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ITokenService _tokenService;
+    private readonly IEmailService _emailService;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
     public AuthService(
         UserManager<ApplicationUser> userManager, 
-        ITokenService tokenService)
+        ITokenService tokenService,
+        IEmailService emailService,
+        IHttpContextAccessor httpContextAccessor)
     {
         _userManager = userManager;
         _tokenService = tokenService;
+        _emailService = emailService;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     public async Task<ApiResponse<RegisterResponseDto>> RegisterAsync(RegisterRequestDto request)
@@ -83,20 +93,41 @@ public class AuthService : IAuthService
         return await GenerateAuthResponse(user);
     }
 
+    public async Task<ApiResponse<string>> ForgotPasswordAsync(ForgotPasswordRequestDto request)
+    {
+        var user = await _userManager.FindByEmailAsync(request.Email);
+        if (user == null)
+            return ApiResponse<string>.Failure("User not found.");
+
+        var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+        var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
+
+        var httpRequest = _httpContextAccessor.HttpContext?.Request;
+        var baseUrl = httpRequest != null ? $"{httpRequest.Scheme}://{httpRequest.Host.Value}" : "http://localhost";
+        var resetLink = $"{baseUrl}/api/auth/reset-password-page?email={Uri.EscapeDataString(user.Email)}&token={encodedToken}";
+
+        await _emailService.SendEmailAsync(user.Email, "Reset Password", $"Please reset your password by clicking here: {resetLink}");
+
+        return ApiResponse<string>.Success("Password reset link has been sent to your email.");
+    }
+
     public async Task<ApiResponse<string>> ResetPasswordAsync(ResetPasswordRequestDto request)
     {
         var user = await _userManager.FindByEmailAsync(request.Email);
         if (user == null)
             return ApiResponse<string>.Failure("User not found.");
 
-        // We use GeneratePasswordResetTokenAsync instead of requiring their current password
-        // because the user requested ONLY "reset password" directly. Wait, the user prompt was:
-        // "make only reset i think i reset only i dont need emailService"
-        // "write only new passwoed" - so changing it to use Remove/Add instead of token reset, OR simple reset.
-        // Actually, if they are resetting password directly, we can just remove the old one and add the new one.
-        
-        var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-        var result = await _userManager.ResetPasswordAsync(user, token, request.NewPassword);
+        string decodedToken;
+        try
+        {
+            decodedToken = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(request.Token));
+        }
+        catch (FormatException)
+        {
+            return ApiResponse<string>.Failure("Invalid token format.");
+        }
+
+        var result = await _userManager.ResetPasswordAsync(user, decodedToken, request.NewPassword);
 
         if (!result.Succeeded)
         {
