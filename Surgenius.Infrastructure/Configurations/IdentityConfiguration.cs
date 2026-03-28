@@ -8,6 +8,8 @@ using Surgenius.Infrastructure.Identity;
 using Surgenius.Infrastructure.Services.Email;
 using Surgenius.Domain.Models;
 using Surgenius.Infrastructure.Data.Context;
+using Surgenius.Application.Interfaces.Cases;
+using Surgenius.Infrastructure.Services.Cases;
 
 namespace Surgenius.Infrastructure.Configurations;
 
@@ -34,6 +36,7 @@ public static class IdentityConfiguration
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IEmailService, EmailService>();
+        services.AddScoped<ICaseService, CaseService>();
 
         return services;
     }

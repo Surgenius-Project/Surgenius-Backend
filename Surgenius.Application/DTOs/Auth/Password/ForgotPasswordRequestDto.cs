@@ -1,4 +1,4 @@
-namespace Surgenius.Application.Models.DTOs.Auth.Password;
+namespace Surgenius.Application.DTOs.Auth.Password;
 
 public class ForgotPasswordRequestDto
 {

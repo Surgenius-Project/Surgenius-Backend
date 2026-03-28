@@ -1,4 +1,4 @@
-namespace Surgenius.Application.Models.DTOs.Auth.Responses;
+namespace Surgenius.Application.DTOs.Auth.Responses;
 
 public class AuthResponseDto
 {

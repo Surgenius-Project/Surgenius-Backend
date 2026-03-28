@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Surgenius.Application.Models.DTOs.Auth.Login;
+namespace Surgenius.Application.DTOs.Auth.Login;
 
 public class LoginRequestDto
 {

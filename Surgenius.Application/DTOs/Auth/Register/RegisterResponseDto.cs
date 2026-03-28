@@ -1,4 +1,4 @@
-namespace Surgenius.Application.Models.DTOs.Auth.Register;
+namespace Surgenius.Application.DTOs.Auth.Register;
 
 public class RegisterResponseDto
 {

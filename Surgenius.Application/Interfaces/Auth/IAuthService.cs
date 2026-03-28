@@ -1,8 +1,8 @@
-using Surgenius.Application.Models.DTOs.Auth.Login;
-using Surgenius.Application.Models.DTOs.Auth.Register;
-using Surgenius.Application.Models.DTOs.Auth.Responses;
-using Surgenius.Application.Models.DTOs.Auth.Password;
 using Surgenius.Application.Models.Responses;
+using Surgenius.Application.DTOs.Auth.Login;
+using Surgenius.Application.DTOs.Auth.Password;
+using Surgenius.Application.DTOs.Auth.Register;
+using Surgenius.Application.DTOs.Auth.Responses;
 
 namespace Surgenius.Application.Interfaces.Auth;
 
