@@ -4,12 +4,16 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Surgenius.Application.Interfaces.Auth;
 using Surgenius.Application.Interfaces.Email;
+using Surgenius.Application.Interfaces.Scans;
+using Surgenius.Application.Interfaces.Storage;
 using Surgenius.Infrastructure.Identity;
+using Surgenius.Infrastructure.Services.Cases;
 using Surgenius.Infrastructure.Services.Email;
+using Surgenius.Infrastructure.Services.Scans;
+using Surgenius.Infrastructure.Services.Storage;
 using Surgenius.Domain.Models;
 using Surgenius.Infrastructure.Data.Context;
 using Surgenius.Application.Interfaces.Cases;
-using Surgenius.Infrastructure.Services.Cases;
 
 namespace Surgenius.Infrastructure.Configurations;
 
@@ -37,6 +41,8 @@ public static class IdentityConfiguration
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IEmailService, EmailService>();
         services.AddScoped<ICaseService, CaseService>();
+        services.AddScoped<IScanService, ScanService>();
+        services.AddScoped<IFileStorageService, LocalFileStorageService>();
 
         return services;
     }

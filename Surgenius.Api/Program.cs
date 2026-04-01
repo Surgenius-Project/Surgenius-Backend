@@ -91,6 +91,7 @@ namespace Surgenius.Api
                 });
             }
 
+            app.UseStaticFiles();
             app.UseHttpsRedirection();
 
             app.UseAuthentication();
