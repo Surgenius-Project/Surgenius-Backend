@@ -46,12 +46,14 @@ public class CasesController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
+    [Authorize(Roles = "Doctor,Student")]
     public async Task<IActionResult> GetCase(Guid id)
     {
-        var userId = User.GetUserId();
-        
-        var response = await _caseService.GetCaseByIdAsync(userId, id);
-        
+        var userId   = User.GetUserId();
+        var isDoctor = User.IsInRole("Doctor");
+
+        var response = await _caseService.GetCaseByIdAsync(userId, isDoctor, id);
+
         if (!response.IsSuccess)
             return NotFound(response);
 

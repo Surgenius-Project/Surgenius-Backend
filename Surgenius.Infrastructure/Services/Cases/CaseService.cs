@@ -52,19 +52,52 @@ public class CaseService : ICaseService
         return ApiResponse<IEnumerable<CaseDto>>.Success(cases);
     }
 
-    public async Task<ApiResponse<CaseDto>> GetCaseByIdAsync(Guid userId, Guid caseId)
+    public async Task<ApiResponse<CaseDetailDto>> GetCaseByIdAsync(Guid userId, bool isDoctor, Guid caseId)
     {
+        // Eager-load the associated scans so they're included in the response
         var @case = await _context.Cases
-            .FirstOrDefaultAsync(c => c.Id == caseId && c.UserId == userId);
+            .Include(c => c.Scans)
+            .FirstOrDefaultAsync(c => c.Id == caseId);
 
         if (@case == null)
-            return ApiResponse<CaseDto>.Failure("Case not found or you don't have access.");
+            return ApiResponse<CaseDetailDto>.Failure("Case not found.");
 
-        return ApiResponse<CaseDto>.Success(new CaseDto
+        if (isDoctor)
+        {
+            // Doctors can only access their own cases
+            if (@case.UserId != userId)
+                return ApiResponse<CaseDetailDto>.Failure("Access denied. You do not own this case.");
+        }
+        else
+        {
+            // Students can access the case only if they are linked to the Doctor who owns it.
+            // ApplicationUser.DoctorId holds the ID of the student's supervising Doctor.
+            var student = await _context.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Id == userId);
+
+            if (student == null)
+                return ApiResponse<CaseDetailDto>.Failure("Student account not found.");
+
+            if (student.DoctorId == null || student.DoctorId != @case.UserId)
+                return ApiResponse<CaseDetailDto>.Failure(
+                    "Access denied. You are not linked to the Doctor who owns this case.");
+        }
+
+        var dto = new CaseDetailDto
         {
             Id = @case.Id,
             CaseType = @case.CaseType,
-            CreationDate = @case.CreationDate
-        });
+            CreationDate = @case.CreationDate,
+            Scans = @case.Scans.Select(s => new ScanSummaryDto
+            {
+                Id = s.Id,
+                ScanPath = s.ScanPath,
+                ScanType = s.ScanType,
+                UploadDate = s.UploadDate
+            }).ToList()
+        };
+
+        return ApiResponse<CaseDetailDto>.Success(dto);
     }
 }

@@ -7,5 +7,10 @@ public interface ICaseService
 {
     Task<ApiResponse<CaseDto>> CreateCaseAsync(Guid userId, CreateCaseDto request);
     Task<ApiResponse<IEnumerable<CaseDto>>> GetUserCasesAsync(Guid userId);
-    Task<ApiResponse<CaseDto>> GetCaseByIdAsync(Guid userId, Guid caseId);
+
+    /// <summary>
+    /// Returns full case details including scans.
+    /// Doctors must own the case; Students must be linked to the Doctor who owns it.
+    /// </summary>
+    Task<ApiResponse<CaseDetailDto>> GetCaseByIdAsync(Guid userId, bool isDoctor, Guid caseId);
 }
