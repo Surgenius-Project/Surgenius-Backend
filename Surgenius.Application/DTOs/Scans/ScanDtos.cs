@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Surgenius.Application.DTOs.Scans;
 
 /// <summary>
@@ -8,6 +10,7 @@ namespace Surgenius.Application.DTOs.Scans;
 public class UploadScanDto
 {
     /// <summary>The raw file content stream.</summary>
+    [JsonIgnore]
     public required Stream FileStream { get; set; }
 
     /// <summary>Original filename (used to preserve the extension).</summary>

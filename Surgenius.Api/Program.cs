@@ -52,6 +52,9 @@ namespace Surgenius.Api
                 });
             });
 
+            // Clear the default claim mapping to ensure standard JWT claim names are used (e.g. 'role' stays 'role')
+            System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
+
             builder.Services.AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -59,6 +62,7 @@ namespace Surgenius.Api
             })
             .AddJwtBearer(options =>
             {
+                options.IncludeErrorDetails = true; // Provides more info in the 'www-authenticate' header
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,
@@ -67,7 +71,8 @@ namespace Surgenius.Api
                     ValidateIssuerSigningKey = true,
                     ValidIssuer = builder.Configuration["Jwt:Issuer"],
                     ValidAudience = builder.Configuration["Jwt:Audience"],
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? "DefaultSuperSecretKey1234567890!"))
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? "DefaultSuperSecretKey1234567890!")),
+                    ClockSkew = TimeSpan.Zero // Remove the default 5-minute grace period for stricter expiration checks
                 };
             });
 

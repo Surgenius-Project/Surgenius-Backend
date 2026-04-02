@@ -17,6 +17,17 @@ public class ScansController : ControllerBase
         _scanService = scanService;
     }
 
+    /// <summary>
+    /// Request model for scan file uploads via multipart/form-data.
+    /// Dedicated model helps Swagger (Swashbuckle) correctly map form fields.
+    /// </summary>
+    public class ScanUploadRequest
+    {
+        public required IFormFile File { get; set; }
+        public Guid CaseId { get; set; }
+        public string? ScanType { get; set; }
+    }
+
     // ──────────────────────────────────────────────────────────────────────
     // POST api/scans
     // Doctor uploads a scan for one of their cases.
@@ -24,13 +35,10 @@ public class ScansController : ControllerBase
     [HttpPost]
     [Authorize(Roles = "Doctor")]
     [Consumes("multipart/form-data")]
-    public async Task<IActionResult> UploadScan(
-        [FromForm] IFormFile file,
-        [FromForm] Guid caseId,
-        [FromForm] string? scanType)
+    public async Task<IActionResult> UploadScan([FromForm] ScanUploadRequest request)
     {
-        // Basic file validation at the controller boundary
-        if (file == null || file.Length == 0)
+        // Basic file validation
+        if (request.File == null || request.File.Length == 0)
             return BadRequest(new { IsSuccess = false, Message = "Please provide a valid file." });
 
         var doctorId = User.GetUserId();
@@ -38,10 +46,10 @@ public class ScansController : ControllerBase
         // Adapt IFormFile → framework-agnostic UploadScanDto
         var dto = new UploadScanDto
         {
-            FileStream = file.OpenReadStream(),
-            FileName   = file.FileName,
-            CaseId     = caseId,
-            ScanType   = scanType
+            FileStream = request.File.OpenReadStream(),
+            FileName   = request.File.FileName,
+            CaseId     = request.CaseId,
+            ScanType   = request.ScanType
         };
 
         var response = await _scanService.UploadScanAsync(doctorId, dto);
