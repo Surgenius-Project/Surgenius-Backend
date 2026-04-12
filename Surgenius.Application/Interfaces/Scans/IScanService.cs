@@ -14,7 +14,7 @@ public interface IScanService
     /// </summary>
     Task<ApiResponse<ScanReadDto>> UploadScanAsync(Guid doctorId, UploadScanDto dto);
 
-    /// <summary>
+    
     /// Returns all scans for a case.
     /// - Doctors: must own the case.
     /// - Students: must be linked to the Doctor who owns the case.

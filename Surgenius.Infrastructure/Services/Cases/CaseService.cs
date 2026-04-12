@@ -23,17 +23,38 @@ public class CaseService : ICaseService
             Id = Guid.NewGuid(),
             UserId = userId,
             CaseType = request.CaseType,
-            CreationDate = DateTime.UtcNow
+            CreationDate = DateTime.UtcNow,
+            PatientName = request.PatientName,
+            PatientAge = request.PatientAge,
+            PatientGender = request.PatientGender,
+            PatientPhone = request.PatientPhone,
+            Description = request.Description
         };
 
         _context.Cases.Add(@case);
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex)
+        {
+            return ApiResponse<CaseDto>.Failure($"Database error: {ex.Message}. Inner Exception: {ex.InnerException?.Message}");
+        }
+        catch (Exception ex)
+        {
+            return ApiResponse<CaseDto>.Failure($"An error occurred: {ex.Message}");
+        }
 
         return ApiResponse<CaseDto>.Success(new CaseDto
         {
             Id = @case.Id,
             CaseType = @case.CaseType,
-            CreationDate = @case.CreationDate
+            CreationDate = @case.CreationDate,
+            PatientName = @case.PatientName,
+            PatientAge = @case.PatientAge,
+            PatientGender = @case.PatientGender,
+            PatientPhone = @case.PatientPhone,
+            Description = @case.Description
         }, "Case created successfully.");
     }
 
@@ -45,7 +66,12 @@ public class CaseService : ICaseService
             {
                 Id = c.Id,
                 CaseType = c.CaseType,
-                CreationDate = c.CreationDate
+                CreationDate = c.CreationDate,
+                PatientName = c.PatientName,
+                PatientAge = c.PatientAge,
+                PatientGender = c.PatientGender,
+                PatientPhone = c.PatientPhone,
+                Description = c.Description
             })
             .ToListAsync();
 
@@ -89,6 +115,11 @@ public class CaseService : ICaseService
             Id = @case.Id,
             CaseType = @case.CaseType,
             CreationDate = @case.CreationDate,
+            PatientName = @case.PatientName,
+            PatientAge = @case.PatientAge,
+            PatientGender = @case.PatientGender,
+            PatientPhone = @case.PatientPhone,
+            Description = @case.Description,
             Scans = @case.Scans.Select(s => new ScanSummaryDto
             {
                 Id = s.Id,

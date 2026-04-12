@@ -15,7 +15,7 @@ namespace Surgenius.Api
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
+            // Add services to the container. 
 
             builder.Services.AddControllers();
             builder.Services.AddHttpContextAccessor();
@@ -87,14 +87,12 @@ namespace Surgenius.Api
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
+            // Swagger is enabled in all environments so the deployed API is accessible
+            app.UseSwagger();
+            app.UseSwaggerUI(options =>
             {
-                app.UseSwagger();
-                app.UseSwaggerUI(options =>
-                {
-                    options.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
-                });
-            }
+                options.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
+            });
 
             app.UseStaticFiles();
             app.UseHttpsRedirection();
