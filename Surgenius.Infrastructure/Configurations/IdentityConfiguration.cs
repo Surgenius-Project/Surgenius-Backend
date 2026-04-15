@@ -13,6 +13,8 @@ using Surgenius.Infrastructure.Services.Scans;
 using Surgenius.Infrastructure.Services.Storage;
 using Surgenius.Domain.Models;
 using Surgenius.Infrastructure.Data.Context;
+using Surgenius.Application.Interfaces.Analysis;
+using Surgenius.Infrastructure.Services.Analysis;
 using Surgenius.Application.Interfaces.Cases;
 
 namespace Surgenius.Infrastructure.Configurations;
@@ -43,6 +45,7 @@ public static class IdentityConfiguration
         services.AddScoped<ICaseService, CaseService>();
         services.AddScoped<IScanService, ScanService>();
         services.AddScoped<IFileStorageService, LocalFileStorageService>();
+        services.AddScoped<IAnalysisService, MockAnalysisService>();
 
         return services;
     }

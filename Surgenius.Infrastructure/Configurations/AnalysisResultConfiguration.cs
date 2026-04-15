@@ -10,7 +10,7 @@ namespace Surgenius.Infrastructure.Configurations
         {
             builder.HasKey(a => a.Id);
 
-            builder.Property(a => a.ConfidenceScore)
+            builder.Property(a => a.Confidence)
                 .HasPrecision(18, 2);
         }
     }

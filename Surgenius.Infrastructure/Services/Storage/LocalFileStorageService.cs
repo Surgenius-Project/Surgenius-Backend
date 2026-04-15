@@ -11,13 +11,18 @@ public class LocalFileStorageService : IFileStorageService
     private const string RelativeFolder = "uploads/scans";
     private readonly string _absoluteFolder;
 
+    private const string AnalysisRelativeFolder = "uploads/analysis";
+    private readonly string _analysisAbsoluteFolder;
+
     public LocalFileStorageService(IWebHostEnvironment env)
     {
         // Resolves to <project>/wwwroot/uploads/scans
         _absoluteFolder = Path.Combine(env.WebRootPath, "uploads", "scans");
-
-        // Ensure the directory exists at startup
         Directory.CreateDirectory(_absoluteFolder);
+
+        // Resolves to <project>/wwwroot/uploads/analysis
+        _analysisAbsoluteFolder = Path.Combine(env.WebRootPath, "uploads", "analysis");
+        Directory.CreateDirectory(_analysisAbsoluteFolder);
     }
 
     public async Task<string> SaveScanAsync(Stream fileStream, string fileName)
@@ -32,5 +37,17 @@ public class LocalFileStorageService : IFileStorageService
 
         // Return the relative web-accessible path
         return $"/{RelativeFolder}/{uniqueFileName}";
+    }
+
+    public async Task<string> SaveAnalysisImageAsync(Stream fileStream, string fileName)
+    {
+        var extension = Path.GetExtension(fileName);
+        var uniqueFileName = $"{Guid.NewGuid()}{extension}";
+        var absolutePath = Path.Combine(_analysisAbsoluteFolder, uniqueFileName);
+
+        using var outputStream = new FileStream(absolutePath, FileMode.Create);
+        await fileStream.CopyToAsync(outputStream);
+
+        return $"/{AnalysisRelativeFolder}/{uniqueFileName}";
     }
 }

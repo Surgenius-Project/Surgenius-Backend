@@ -9,8 +9,10 @@ public interface IFileStorageService
     /// <summary>
     /// Saves the file stream to the scans directory and returns the relative web path.
     /// </summary>
-    /// <param name="fileStream">The stream containing the file data.</param>
-    /// <param name="fileName">The original file name (used to extract the extension).</param>
-    /// <returns>The relative path, e.g. /uploads/scans/abc123.jpg</returns>
     Task<string> SaveScanAsync(Stream fileStream, string fileName);
+
+    /// <summary>
+    /// Saves AI-generated masks or analysis visuals to the analysis directory.
+    /// </summary>
+    Task<string> SaveAnalysisImageAsync(Stream fileStream, string fileName);
 }
