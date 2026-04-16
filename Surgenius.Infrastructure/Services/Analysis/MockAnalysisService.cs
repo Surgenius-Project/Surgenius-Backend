@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
+using Surgenius.Application.DTOs.Analysis;
 using Surgenius.Application.Interfaces.Analysis;
+using Surgenius.Application.Models.Responses;
 using Surgenius.Domain.Models;
 using Surgenius.Infrastructure.Data.Context;
 
@@ -66,4 +68,58 @@ public class MockAnalysisService : IAnalysisService
 
         return result;
     }
+
+    public async Task<ApiResponse<AnalysisReadDto>> GetAnalysisByScanAsync(Guid userId, bool isDoctor, Guid scanId)
+    {
+        // Load analysis result including the scan and its case so we can check ownership/linking
+        var analysis = await _context.AnalysisResults
+            .AsNoTracking()
+            .Include(a => a.Scan)
+                .ThenInclude(s => s.Case)
+            .FirstOrDefaultAsync(a => a.ScanId == scanId);
+
+        if (analysis == null)
+            return ApiResponse<AnalysisReadDto>.Failure("Analysis result not found.");
+
+        var @case = analysis.Scan?.Case;
+        if (@case == null)
+            return ApiResponse<AnalysisReadDto>.Failure("Associated case not found.");
+
+        if (isDoctor)
+        {
+            // Doctor must own the case
+            if (@case.UserId != userId)
+                return ApiResponse<AnalysisReadDto>.Failure("Access denied. You do not own this case.");
+        }
+        else
+        {
+            // Student must be linked to the Doctor who owns the case.
+            var student = await _context.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Id == userId);
+
+            if (student == null)
+                return ApiResponse<AnalysisReadDto>.Failure("Student account not found.");
+
+            if (student.DoctorId == null || student.DoctorId != @case.UserId)
+                return ApiResponse<AnalysisReadDto>.Failure(
+                    "Access denied. You are not linked to the Doctor who owns this case.");
+        }
+
+        var dto = MapToDto(analysis);
+        return ApiResponse<AnalysisReadDto>.Success(dto);
+    }
+
+    private static AnalysisReadDto MapToDto(AnalysisResult a) => new()
+    {
+        Id = a.Id,
+        ScanId = a.ScanId,
+        StageNumeric = a.StageNumeric,
+        StageLabel = a.StageLabel,
+        Confidence = a.Confidence,
+        TumorAreaPixels = a.TumorAreaPixels,
+        MaskPath = a.MaskPath,
+        HighlightedPath = a.HighlightedPath,
+        Model3DPath = a.Model3DPath
+    };
 }

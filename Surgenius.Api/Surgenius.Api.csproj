@@ -16,10 +16,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Controllers\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\Surgenius.Application\Surgenius.Application.csproj" />
     <ProjectReference Include="..\Surgenius.Infrastructure\Surgenius.Infrastructure.csproj" />
   </ItemGroup>
