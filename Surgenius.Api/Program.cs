@@ -62,7 +62,15 @@ namespace Surgenius.Api
             })
             .AddJwtBearer(options =>
             {
-                options.IncludeErrorDetails = true; // Provides more info in the 'www-authenticate' header
+                var jwtKey = builder.Configuration["Jwt:Key"];
+                if (string.IsNullOrEmpty(jwtKey))
+                {
+                    // In a real production app, you might want to throw here. 
+                    // For now, we'll use a fallback or ensure it's clear it's missing.
+                    jwtKey = "DefaultSuperSecretKey1234567890!"; 
+                }
+
+                options.IncludeErrorDetails = true; 
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,
@@ -71,8 +79,8 @@ namespace Surgenius.Api
                     ValidateIssuerSigningKey = true,
                     ValidIssuer = builder.Configuration["Jwt:Issuer"],
                     ValidAudience = builder.Configuration["Jwt:Audience"],
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? "DefaultSuperSecretKey1234567890!")),
-                    ClockSkew = TimeSpan.Zero // Remove the default 5-minute grace period for stricter expiration checks
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+                    ClockSkew = TimeSpan.Zero
                 };
             });
 

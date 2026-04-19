@@ -53,7 +53,7 @@ public class MockAnalysisService : IAnalysisService
             // Mock paths simulating what AI/Storage would output
             MaskPath = $"/uploads/analysis/mock_mask_{scanId}.png",
             HighlightedPath = $"/uploads/analysis/mock_highlighted_{scanId}.png",
-            Model3DPath = $"/uploads/models/mock_3d_model_{scanId}.obj"
+            Model3DPath = "/uploads/models/liver_placeholder.obj" // Use placeholder for 3D model
         };
 
         // Check if a result already exists to prevent duplicates (optional, based on logic)
