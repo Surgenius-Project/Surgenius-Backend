@@ -102,7 +102,14 @@ namespace Surgenius.Api
                 options.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
             });
 
-            app.UseStaticFiles();
+            // Setup static files with custom content types (for .obj files etc)
+            var provider = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider();
+            provider.Mappings[".obj"] = "application/octet-stream";
+            
+            app.UseStaticFiles(new StaticFileOptions
+            {
+                ContentTypeProvider = provider
+            });
             app.UseHttpsRedirection();
 
             app.UseAuthentication();
