@@ -6,6 +6,7 @@ using Surgenius.Infrastructure.Configurations;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Surgenius.Api.Middlewares;
 
 namespace Surgenius.Api
 {
@@ -19,6 +20,17 @@ namespace Surgenius.Api
 
             builder.Services.AddControllers();
             builder.Services.AddHttpContextAccessor();
+
+            // Configure CORS
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowAll", policy =>
+                {
+                    policy.AllowAnyOrigin()
+                          .AllowAnyMethod()
+                          .AllowAnyHeader();
+                });
+            });
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(c =>
@@ -111,6 +123,11 @@ namespace Surgenius.Api
                 ContentTypeProvider = provider
             });
             app.UseHttpsRedirection();
+
+            // Use Global Exception Handler
+            app.UseMiddleware<ExceptionHandlingMiddleware>();
+
+            app.UseCors("AllowAll");
 
             app.UseAuthentication();
             app.UseAuthorization();
