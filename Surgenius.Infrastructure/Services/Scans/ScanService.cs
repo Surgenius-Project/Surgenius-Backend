@@ -24,29 +24,40 @@ public class ScanService : IScanService
     // ──────────────────────────────────────────────────────────────────────────
     public async Task<ApiResponse<ScanReadDto>> UploadScanAsync(Guid doctorId, UploadScanDto dto)
     {
-        // 1. Validate the file stream
+        // 1. Validate the file stream and name
         if (dto.FileStream == null || dto.FileStream.Length == 0)
             return ApiResponse<ScanReadDto>.Failure("No file was provided or the file is empty.");
 
         if (string.IsNullOrWhiteSpace(dto.FileName))
             return ApiResponse<ScanReadDto>.Failure("File name is required.");
 
-        // 2. Verify the case exists
+        // 2. Validate file size (Limit to 20MB)
+        const long maxFileSize = 20 * 1024 * 1024; // 20 MB
+        if (dto.FileStream.Length > maxFileSize)
+            return ApiResponse<ScanReadDto>.Failure("File size exceeds the 20MB limit.");
+
+        // 3. Validate file extension
+        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".dcm", ".nii" };
+        var fileExtension = Path.GetExtension(dto.FileName).ToLowerInvariant();
+        if (!allowedExtensions.Contains(fileExtension))
+            return ApiResponse<ScanReadDto>.Failure("Invalid file type. Only .jpg, .jpeg, .png, .dcm, and .nii are allowed.");
+
+        // 4. Verify the case exists
         var @case = await _context.Cases
             .FirstOrDefaultAsync(c => c.Id == dto.CaseId);
 
         if (@case == null)
             return ApiResponse<ScanReadDto>.Failure("Case not found.");
 
-        // 3. Verify the calling Doctor owns this case
+        // 5. Verify the calling Doctor owns this case
         //    (Case.UserId stores the ID of the Doctor who created it)
         if (@case.UserId != doctorId)
             return ApiResponse<ScanReadDto>.Failure("Access denied. You do not own this case.");
 
-        // 4. Persist the file to local storage
+        // 6. Persist the file to local storage
         var relativePath = await _fileStorage.SaveScanAsync(dto.FileStream, dto.FileName);
 
-        // 5. Create and save the Scan record
+        // 7. Create and save the Scan record
         var scan = new Scan
         {
             Id = Guid.NewGuid(),
