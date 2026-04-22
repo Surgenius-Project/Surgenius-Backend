@@ -8,11 +8,13 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Surgenius.Api.Middlewares;
 
+using System.Threading.Tasks;
+
 namespace Surgenius.Api
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
@@ -105,6 +107,21 @@ namespace Surgenius.Api
 
             builder.Services.AddIdentityInfrastructure(builder.Configuration);
             var app = builder.Build();
+
+            // Seed Data
+            using (var scope = app.Services.CreateScope())
+            {
+                var services = scope.ServiceProvider;
+                try
+                {
+                    await Surgenius.Infrastructure.Data.DataSeeder.SeedAsync(services);
+                }
+                catch (Exception ex)
+                {
+                    // Log error if needed
+                    Console.WriteLine($"An error occurred while seeding the database: {ex.Message}");
+                }
+            }
 
             // Configure the HTTP request pipeline.
             // Swagger is enabled in all environments so the deployed API is accessible

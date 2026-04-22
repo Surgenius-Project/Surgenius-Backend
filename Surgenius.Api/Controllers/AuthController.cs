@@ -1,8 +1,12 @@
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Surgenius.Application.DTOs.Auth.Login;
 using Surgenius.Application.DTOs.Auth.Register;
 using Surgenius.Application.DTOs.Auth.Password;
 using Surgenius.Application.Interfaces.Auth;
+using Surgenius.Application.DTOs.Auth.Roles;
+using Surgenius.Application.DTOs.Auth.Responses;
 
 namespace Surgenius.Api.Controllers;
 
@@ -51,6 +55,17 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequestDto request)
     {
         var response = await _authService.ResetPasswordAsync(request);
+        if (!response.IsSuccess)
+            return BadRequest(response);
+
+        return Ok(response);
+    }
+
+    [Authorize(Roles = "Admin")]
+    [HttpPost("assign-role")]
+    public async Task<IActionResult> AssignRole([FromBody] AssignRoleRequestDto request)
+    {
+        var response = await _authService.AssignRoleAsync(request);
         if (!response.IsSuccess)
             return BadRequest(response);
 

@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
 using Surgenius.Application.Models.Responses;
 using Surgenius.Application.Interfaces.Auth;
@@ -11,6 +14,7 @@ using Surgenius.Application.DTOs.Auth.Login;
 using Surgenius.Application.DTOs.Auth.Password;
 using Surgenius.Application.DTOs.Auth.Register;
 using Surgenius.Application.DTOs.Auth.Responses;
+using Surgenius.Application.DTOs.Auth.Roles;
 
 namespace Surgenius.Infrastructure.Identity;
 
@@ -108,7 +112,7 @@ public class AuthService : IAuthService
 
         await _emailService.SendEmailAsync(user.Email, "Reset Password", $"Please reset your password by clicking here: {resetLink}");
 
-        return ApiResponse<string>.Success("Password reset link has been sent to your email.");
+        return ApiResponse<string>.Success(encodedToken, "Password reset link has been sent to your email.");
     }
 
     public async Task<ApiResponse<string>> ResetPasswordAsync(ResetPasswordRequestDto request)
@@ -138,14 +142,31 @@ public class AuthService : IAuthService
         return ApiResponse<string>.Success("Password reset successfully.");
     }
 
+    public async Task<ApiResponse<string>> AssignRoleAsync(AssignRoleRequestDto request)
+    {
+        var user = await _userManager.FindByIdAsync(request.UserId.ToString());
+        if (user == null)
+            return ApiResponse<string>.Failure("User not found.");
+
+        var result = await _userManager.AddToRoleAsync(user, request.RoleName);
+
+        if (!result.Succeeded)
+        {
+            var errors = result.Errors.Select(e => e.Description).ToList();
+            return ApiResponse<string>.Failure("Failed to assign role.", errors);
+        }
+
+        return ApiResponse<string>.Success($"Role '{request.RoleName}' assigned successfully.");
+    }
+
     
 
     private async Task<ApiResponse<AuthResponseDto>> GenerateAuthResponse(ApplicationUser user)
     {
         var roles = await _userManager.GetRolesAsync(user);
-        var role = roles.FirstOrDefault() ?? "No Role";
+        var primaryRole = roles.FirstOrDefault() ?? "No Role";
 
-        var token = _tokenService.GenerateToken(user, role);
+        var token = _tokenService.GenerateToken(user, primaryRole);
 
         var response = new AuthResponseDto
         {
@@ -153,7 +174,7 @@ public class AuthService : IAuthService
             Token = token,
             FullName = user.FullName,
             Email = user.Email!,
-            Role = role,
+            Roles = roles.ToList(),
             InviteCode = user.InviteCode
         };
 

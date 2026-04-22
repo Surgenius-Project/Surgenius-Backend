@@ -1,3 +1,5 @@
+using System;
+
 namespace Surgenius.Application.DTOs.Auth.Register;
 
 public class RegisterResponseDto
