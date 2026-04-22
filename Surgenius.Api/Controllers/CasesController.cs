@@ -19,6 +19,7 @@ public class CasesController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin,Doctor")]
     public async Task<IActionResult> CreateCase([FromBody] CreateCaseDto request)
     {
         var userId = User.GetUserId();
@@ -33,11 +34,13 @@ public class CasesController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Roles = "Admin,Doctor,Student")]
     public async Task<IActionResult> GetUserCases()
     {
-        var userId = User.GetUserId();
-        
-        var response = await _caseService.GetUserCasesAsync(userId);
+        var userId  = User.GetUserId();
+        var isAdmin = User.IsInRole("Admin");
+
+        var response = await _caseService.GetUserCasesAsync(userId, isAdmin);
         
         if (!response.IsSuccess)
             return BadRequest(response);
@@ -46,13 +49,14 @@ public class CasesController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
-    [Authorize(Roles = "Doctor,Student")]
+    [Authorize(Roles = "Admin,Doctor,Student")]
     public async Task<IActionResult> GetCase(Guid id)
     {
         var userId   = User.GetUserId();
         var isDoctor = User.IsInRole("Doctor");
+        var isAdmin  = User.IsInRole("Admin");
 
-        var response = await _caseService.GetCaseByIdAsync(userId, isDoctor, id);
+        var response = await _caseService.GetCaseByIdAsync(userId, isDoctor, isAdmin, id);
 
         if (!response.IsSuccess)
             return NotFound(response);

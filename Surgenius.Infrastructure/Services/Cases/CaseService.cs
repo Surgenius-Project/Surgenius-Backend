@@ -58,10 +58,14 @@ public class CaseService : ICaseService
         }, "Case created successfully.");
     }
 
-    public async Task<ApiResponse<IEnumerable<CaseDto>>> GetUserCasesAsync(Guid userId)
+    public async Task<ApiResponse<IEnumerable<CaseDto>>> GetUserCasesAsync(Guid userId, bool isAdmin)
     {
-        var cases = await _context.Cases
-            .Where(c => c.UserId == userId)
+        // Admin sees ALL cases in the system; others see only their own
+        var query = isAdmin
+            ? _context.Cases.AsQueryable()
+            : _context.Cases.Where(c => c.UserId == userId);
+
+        var cases = await query
             .Select(c => new CaseDto
             {
                 Id = c.Id,
@@ -78,7 +82,7 @@ public class CaseService : ICaseService
         return ApiResponse<IEnumerable<CaseDto>>.Success(cases);
     }
 
-    public async Task<ApiResponse<CaseDetailDto>> GetCaseByIdAsync(Guid userId, bool isDoctor, Guid caseId)
+    public async Task<ApiResponse<CaseDetailDto>> GetCaseByIdAsync(Guid userId, bool isDoctor, bool isAdmin, Guid caseId)
     {
         // Eager-load the associated scans so they're included in the response
         var @case = await _context.Cases
@@ -88,7 +92,11 @@ public class CaseService : ICaseService
         if (@case == null)
             return ApiResponse<CaseDetailDto>.Failure("Case not found.");
 
-        if (isDoctor)
+        if (isAdmin)
+        {
+            // Admin has unrestricted access to any case
+        }
+        else if (isDoctor)
         {
             // Doctors can only access their own cases
             if (@case.UserId != userId)

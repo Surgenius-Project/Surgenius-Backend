@@ -6,11 +6,18 @@ namespace Surgenius.Application.Interfaces.Cases;
 public interface ICaseService
 {
     Task<ApiResponse<CaseDto>> CreateCaseAsync(Guid userId, CreateCaseDto request);
-    Task<ApiResponse<IEnumerable<CaseDto>>> GetUserCasesAsync(Guid userId);
+
+    /// <summary>
+    /// Returns cases for the calling user.
+    /// Admins see ALL cases; Doctors/Students see only their own.
+    /// </summary>
+    Task<ApiResponse<IEnumerable<CaseDto>>> GetUserCasesAsync(Guid userId, bool isAdmin);
 
     /// <summary>
     /// Returns full case details including scans.
-    /// Doctors must own the case; Students must be linked to the Doctor who owns it.
+    /// Admins: unrestricted access.
+    /// Doctors: must own the case.
+    /// Students: must be linked to the Doctor who owns it.
     /// </summary>
-    Task<ApiResponse<CaseDetailDto>> GetCaseByIdAsync(Guid userId, bool isDoctor, Guid caseId);
+    Task<ApiResponse<CaseDetailDto>> GetCaseByIdAsync(Guid userId, bool isDoctor, bool isAdmin, Guid caseId);
 }
