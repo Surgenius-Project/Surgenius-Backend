@@ -33,7 +33,7 @@ public class ScansController : ControllerBase
     // Doctor uploads a scan for one of their cases.
     // ──────────────────────────────────────────────────────────────────────
     [HttpPost]
-    [Authorize(Roles = "Doctor")]
+    [Authorize(Roles = "Admin,Doctor")]
     [Consumes("multipart/form-data")]
     public async Task<IActionResult> UploadScan([FromForm] ScanUploadRequest request)
     {
@@ -41,7 +41,8 @@ public class ScansController : ControllerBase
         if (request.File == null || request.File.Length == 0)
             return BadRequest(new { IsSuccess = false, Message = "Please provide a valid file." });
 
-        var doctorId = User.GetUserId();
+        var userId = User.GetUserId();
+        var isAdmin = User.IsInRole("Admin");
 
         // Adapt IFormFile → framework-agnostic UploadScanDto
         var dto = new UploadScanDto
@@ -52,7 +53,7 @@ public class ScansController : ControllerBase
             ScanType   = request.ScanType
         };
 
-        var response = await _scanService.UploadScanAsync(doctorId, dto);
+        var response = await _scanService.UploadScanAsync(userId, isAdmin, dto);
 
         if (!response.IsSuccess)
             return BadRequest(response);
@@ -65,13 +66,14 @@ public class ScansController : ControllerBase
     // Accessible by both Doctors and Students (with their own access rules).
     // ──────────────────────────────────────────────────────────────────────
     [HttpGet("case/{caseId:guid}")]
-    [Authorize(Roles = "Doctor,Student")]
+    [Authorize(Roles = "Admin,Doctor,Student")]
     public async Task<IActionResult> GetScansByCase(Guid caseId)
     {
         var userId   = User.GetUserId();
         var isDoctor = User.IsInRole("Doctor");
+        var isAdmin  = User.IsInRole("Admin");
 
-        var response = await _scanService.GetScansByCaseAsync(userId, isDoctor, caseId);
+        var response = await _scanService.GetScansByCaseAsync(userId, isDoctor, isAdmin, caseId);
 
         if (!response.IsSuccess)
             return BadRequest(response);

@@ -22,9 +22,9 @@ public class ScanService : IScanService
     }
 
     // ──────────────────────────────────────────────────────────────────────────
-    // UPLOAD  (Doctor only)
+    // UPLOAD  (Admin or Doctor)
     // ──────────────────────────────────────────────────────────────────────────
-    public async Task<ApiResponse<ScanReadDto>> UploadScanAsync(Guid doctorId, UploadScanDto dto)
+    public async Task<ApiResponse<ScanReadDto>> UploadScanAsync(Guid userId, bool isAdmin, UploadScanDto dto)
     {
         // 1. Validate the file stream and name
         if (dto.FileStream == null || dto.FileStream.Length == 0)
@@ -51,9 +51,9 @@ public class ScanService : IScanService
         if (@case == null)
             return ApiResponse<ScanReadDto>.Failure("Case not found.");
 
-        // 5. Verify the calling Doctor owns this case
+        // 5. Verify the calling Doctor owns this case (Admin bypasses this)
         //    (Case.UserId stores the ID of the Doctor who created it)
-        if (@case.UserId != doctorId)
+        if (!isAdmin && @case.UserId != userId)
             return ApiResponse<ScanReadDto>.Failure("Access denied. You do not own this case.");
 
         // 6. Persist the file to local storage
@@ -76,10 +76,10 @@ public class ScanService : IScanService
     }
 
     // ──────────────────────────────────────────────────────────────────────────
-    // GET BY CASE  (Doctor who owns the case  OR  Student linked to that Doctor)
+    // GET BY CASE  (Admin OR Doctor who owns the case OR Student linked to that Doctor)
     // ──────────────────────────────────────────────────────────────────────────
     public async Task<ApiResponse<IEnumerable<ScanReadDto>>> GetScansByCaseAsync(
-        Guid userId, bool isDoctor, Guid caseId)
+        Guid userId, bool isDoctor, bool isAdmin, Guid caseId)
     {
         // Load the case so we can check ownership
         var @case = await _context.Cases
@@ -88,7 +88,11 @@ public class ScanService : IScanService
         if (@case == null)
             return ApiResponse<IEnumerable<ScanReadDto>>.Failure("Case not found.");
 
-        if (isDoctor)
+        if (isAdmin)
+        {
+            // Admin has access to all cases
+        }
+        else if (isDoctor)
         {
             // Doctor must own the case
             if (@case.UserId != userId)
