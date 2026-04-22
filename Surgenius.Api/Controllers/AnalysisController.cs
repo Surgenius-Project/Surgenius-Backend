@@ -25,14 +25,15 @@ public class AnalysisController : ControllerBase
     // Doctor only - must own the case containing the scan.
     // --------------------------------------------------------------------------
     [HttpPost("process/{scanId:guid}")]
-    [Authorize(Roles = "Doctor")]
+    [Authorize(Roles = "Admin,Doctor")]
     public async Task<IActionResult> ProcessScan(Guid scanId)
     {
-        var doctorId = User.GetUserId();
+        var userId = User.GetUserId();
+        var isAdmin = User.IsInRole("Admin");
 
         try
         {
-            var result = await _analysisService.ProcessScanAsync(scanId, doctorId);
+            var result = await _analysisService.ProcessScanAsync(scanId, userId, isAdmin);
             
             // Map to DTO and transform relative paths to absolute URLs
             var dto = new AnalysisReadDto
@@ -64,13 +65,14 @@ public class AnalysisController : ControllerBase
     // Accessible by Doctors and Students.
     // --------------------------------------------------------------------------
     [HttpGet("scan/{scanId:guid}")]
-    [Authorize(Roles = "Doctor,Student")]
+    [Authorize(Roles = "Admin,Doctor,Student")]
     public async Task<IActionResult> GetAnalysisByScan(Guid scanId)
     {
         var userId   = User.GetUserId();
         var isDoctor = User.IsInRole("Doctor");
+        var isAdmin  = User.IsInRole("Admin");
 
-        var response = await _analysisService.GetAnalysisByScanAsync(userId, isDoctor, scanId);
+        var response = await _analysisService.GetAnalysisByScanAsync(userId, isDoctor, isAdmin, scanId);
 
         if (!response.IsSuccess)
             return BadRequest(response);

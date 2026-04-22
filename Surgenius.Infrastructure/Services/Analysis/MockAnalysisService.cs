@@ -16,14 +16,14 @@ public class MockAnalysisService : IAnalysisService
         _context = context;
     }
 
-    public async Task<AnalysisResult> ProcessScanAsync(Guid scanId, Guid userId)
+    public async Task<AnalysisResult> ProcessScanAsync(Guid scanId, Guid userId, bool isAdmin)
     {
         // Verify the scan exists
         var scan = await _context.Scans.Include(s => s.Case).FirstOrDefaultAsync(s => s.Id == scanId);
         if (scan == null)
             throw new Exception("Scan not found.");
 
-        if (scan.Case.UserId != userId)
+        if (!isAdmin && scan.Case.UserId != userId)
             throw new Exception("Unauthorized to analyze this scan.");
 
         // Simulate AI processing delay
@@ -69,7 +69,7 @@ public class MockAnalysisService : IAnalysisService
         return result;
     }
 
-    public async Task<ApiResponse<AnalysisReadDto>> GetAnalysisByScanAsync(Guid userId, bool isDoctor, Guid scanId)
+    public async Task<ApiResponse<AnalysisReadDto>> GetAnalysisByScanAsync(Guid userId, bool isDoctor, bool isAdmin, Guid scanId)
     {
         // Load analysis result including the scan and its case so we can check ownership/linking
         var analysis = await _context.AnalysisResults
@@ -85,7 +85,11 @@ public class MockAnalysisService : IAnalysisService
         if (@case == null)
             return ApiResponse<AnalysisReadDto>.Failure("Associated case not found.");
 
-        if (isDoctor)
+        if (isAdmin)
+        {
+            // Admin has access to all analysis results
+        }
+        else if (isDoctor)
         {
             // Doctor must own the case
             if (@case.UserId != userId)
