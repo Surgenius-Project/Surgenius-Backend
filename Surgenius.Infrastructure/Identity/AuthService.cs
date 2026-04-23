@@ -110,7 +110,8 @@ public class AuthService : IAuthService
 
         await _emailService.SendEmailAsync(user.Email, "Reset Password Verification Code", $"Your password reset verification code is: {otpCode}");
 
-        return ApiResponse<string>.Success(null, "Verification code has been sent to your email.");
+        // TODO: Remove OTP from response body before production — included here for testing only.
+        return ApiResponse<string>.Success(otpCode, "Verification code has been sent to your email.");
     }
 
     public async Task<ApiResponse<string>> VerifyCodeAsync(VerifyCodeRequestDto request)
