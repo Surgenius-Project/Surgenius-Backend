@@ -12,6 +12,8 @@ public class ApplicationUser : IdentityUser<Guid>
     public Guid? DoctorId { get; set; }
     public ApplicationUser? Doctor { get; set; }
     public ICollection<ApplicationUser> Students { get; set; } = new List<ApplicationUser>();
+    public string? OtpCode { get; set; }
+    public DateTime? OtpExpiry { get; set; }
 
     public ICollection<Case> Cases { get; set; } = new List<Case>();
 }

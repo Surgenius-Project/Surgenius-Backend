@@ -13,6 +13,7 @@ public interface IAuthService
     Task<ApiResponse<RegisterResponseDto>> RegisterAsync(RegisterRequestDto request);
     Task<ApiResponse<AuthResponseDto>> LoginAsync(LoginRequestDto request);
     Task<ApiResponse<string>> ForgotPasswordAsync(ForgotPasswordRequestDto request);
+    Task<ApiResponse<string>> VerifyCodeAsync(VerifyCodeRequestDto request);
     Task<ApiResponse<string>> ResetPasswordAsync(ResetPasswordRequestDto request);
     Task<ApiResponse<string>> AssignRoleAsync(AssignRoleRequestDto request);
 }

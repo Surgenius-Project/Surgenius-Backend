@@ -51,6 +51,16 @@ public class AuthController : ControllerBase
         return Ok(response);
     }
 
+    [HttpPost("verify-code")]
+    public async Task<IActionResult> VerifyCode([FromBody] VerifyCodeRequestDto request)
+    {
+        var response = await _authService.VerifyCodeAsync(request);
+        if (!response.IsSuccess)
+            return BadRequest(response);
+
+        return Ok(response);
+    }
+
     [HttpPost("reset-password")]
     public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequestDto request)
     {

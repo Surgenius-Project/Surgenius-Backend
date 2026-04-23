@@ -60,7 +60,7 @@ public class AuthService : IAuthService
                 .FirstOrDefaultAsync(u => u.InviteCode == request.InviteCode && u.UserType == Domain.Enums.UserType.Doctor);
 
             if (doctor == null)
-                return ApiResponse<RegisterResponseDto>.Failure("Invalid invite code.");
+                return ApiResponse<RegisterResponseDto>.Failure("The student access code is incorrect.");
 
             user.DoctorId = doctor.Id;
         }
@@ -103,16 +103,35 @@ public class AuthService : IAuthService
         if (user == null)
             return ApiResponse<string>.Failure("User not found.");
 
+        var otpCode = new Random().Next(1000, 9999).ToString();
+        user.OtpCode = otpCode;
+        user.OtpExpiry = System.DateTime.UtcNow.AddMinutes(15);
+        await _userManager.UpdateAsync(user);
+
+        await _emailService.SendEmailAsync(user.Email, "Reset Password Verification Code", $"Your password reset verification code is: {otpCode}");
+
+        return ApiResponse<string>.Success(null, "Verification code has been sent to your email.");
+    }
+
+    public async Task<ApiResponse<string>> VerifyCodeAsync(VerifyCodeRequestDto request)
+    {
+        var user = await _userManager.FindByEmailAsync(request.Email);
+        if (user == null)
+            return ApiResponse<string>.Failure("User not found.");
+
+        if (user.OtpCode != request.Code || user.OtpExpiry < System.DateTime.UtcNow)
+        {
+            return ApiResponse<string>.Failure("Invalid or expired verification code.");
+        }
+
+        user.OtpCode = null;
+        user.OtpExpiry = null;
+        await _userManager.UpdateAsync(user);
+
         var token = await _userManager.GeneratePasswordResetTokenAsync(user);
         var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
 
-        var httpRequest = _httpContextAccessor.HttpContext?.Request;
-        var baseUrl = httpRequest != null ? $"{httpRequest.Scheme}://{httpRequest.Host.Value}" : "http://localhost";
-        var resetLink = $"{baseUrl}/api/auth/reset-password-page?email={Uri.EscapeDataString(user.Email)}&token={encodedToken}";
-
-        await _emailService.SendEmailAsync(user.Email, "Reset Password", $"Please reset your password by clicking here: {resetLink}");
-
-        return ApiResponse<string>.Success(encodedToken, "Password reset link has been sent to your email.");
+        return ApiResponse<string>.Success(encodedToken, "Code verified successfully.");
     }
 
     public async Task<ApiResponse<string>> ResetPasswordAsync(ResetPasswordRequestDto request)
