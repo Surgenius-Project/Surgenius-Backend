@@ -79,4 +79,17 @@ public class ProfileController : ControllerBase
 
         return Ok(response);
     }
+
+    [HttpGet("invite-code")]
+    [Authorize(Roles = "Doctor")]
+    public async Task<IActionResult> GetInviteCode()
+    {
+        var userId = User.GetUserId();
+        var response = await _profileService.GetOrGenerateInviteCodeAsync(userId);
+        
+        if (!response.IsSuccess)
+            return BadRequest(response);
+
+        return Ok(response);
+    }
 }

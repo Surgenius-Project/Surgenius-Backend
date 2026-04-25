@@ -98,4 +98,43 @@ public class ProfileService : IProfileService
 
         return ApiResponse<bool>.Success(true, "Password changed successfully.");
     }
+
+    public async Task<ApiResponse<string>> GetOrGenerateInviteCodeAsync(Guid doctorId)
+    {
+        var user = await _userManager.FindByIdAsync(doctorId.ToString());
+        if (user == null) return ApiResponse<string>.Failure("Doctor not found.");
+
+        // Return existing code if it exists
+        if (!string.IsNullOrWhiteSpace(user.InviteCode))
+        {
+            return ApiResponse<string>.Success(user.InviteCode);
+        }
+
+        // Generate a new unique 6-character code
+        string newCode;
+        bool isUnique = false;
+        var random = new Random();
+        const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
+        do
+        {
+            newCode = new string(Enumerable.Repeat(chars, 6)
+                .Select(s => s[random.Next(s.Length)]).ToArray());
+
+            // Check if it's unique in the database
+            isUnique = !await _context.Users.AnyAsync(u => u.InviteCode == newCode);
+        } 
+        while (!isUnique);
+
+        // Save the new code
+        user.InviteCode = newCode;
+        var result = await _userManager.UpdateAsync(user);
+
+        if (!result.Succeeded)
+        {
+            return ApiResponse<string>.Failure("Failed to generate and save the invite code.");
+        }
+
+        return ApiResponse<string>.Success(newCode, "New invite code generated successfully.");
+    }
 }

@@ -10,4 +10,5 @@ public interface IProfileService
     Task<ApiResponse<IEnumerable<StudentDto>>> GetLinkedStudentsAsync(Guid doctorId);
     Task<ApiResponse<bool>> RemoveStudentAsync(Guid doctorId, Guid studentId);
     Task<ApiResponse<bool>> ChangePasswordAsync(Guid userId, ChangePasswordDto request);
+    Task<ApiResponse<string>> GetOrGenerateInviteCodeAsync(Guid doctorId);
 }
