@@ -100,6 +100,7 @@ public class MockAnalysisService : IAnalysisService
             // Student must be linked to the Doctor who owns the case.
             var student = await _context.Users
                 .AsNoTracking()
+                .Include(u => u.Doctor)
                 .FirstOrDefaultAsync(u => u.Id == userId);
 
             if (student == null)
@@ -108,6 +109,9 @@ public class MockAnalysisService : IAnalysisService
             if (student.DoctorId == null || student.DoctorId != @case.UserId)
                 return ApiResponse<AnalysisReadDto>.Failure(
                     "Access denied. You are not linked to the Doctor who owns this case.");
+
+            if (student.Doctor != null && !student.Doctor.IsInviteCodeActive)
+                return ApiResponse<AnalysisReadDto>.Failure("Access denied by Doctor.");
         }
 
         var dto = MapToDto(analysis);

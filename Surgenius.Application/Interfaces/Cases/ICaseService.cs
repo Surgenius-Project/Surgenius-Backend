@@ -11,7 +11,7 @@ public interface ICaseService
     /// Returns cases for the calling user.
     /// Admins see ALL cases; Doctors/Students see only their own.
     /// </summary>
-    Task<ApiResponse<IEnumerable<CaseDto>>> GetUserCasesAsync(Guid userId, bool isAdmin);
+    Task<ApiResponse<IEnumerable<CaseDto>>> GetUserCasesAsync(Guid userId, bool isDoctor, bool isAdmin);
 
     /// <summary>
     /// Returns full case details including scans.

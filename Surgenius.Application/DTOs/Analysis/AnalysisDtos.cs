@@ -18,4 +18,9 @@ public class AnalysisReadDto
     public string? MaskPath { get; set; }
     public string? HighlightedPath { get; set; }
     public string? Model3DPath { get; set; }
+
+    // Aliases for frontend consistency as requested
+    public double ConfidenceScore => Confidence;
+    public string Stage => StageLabel;
+    public string? Model3DUrl => Model3DPath;
 }

@@ -19,7 +19,7 @@ public class CasesController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin,Doctor")]
+    [Authorize(Roles = "Doctor")]
     public async Task<IActionResult> CreateCase([FromBody] CreateCaseDto request)
     {
         var userId = User.GetUserId();
@@ -37,10 +37,11 @@ public class CasesController : ControllerBase
     [Authorize(Roles = "Admin,Doctor,Student")]
     public async Task<IActionResult> GetUserCases()
     {
-        var userId  = User.GetUserId();
-        var isAdmin = User.IsInRole("Admin");
+        var userId   = User.GetUserId();
+        var isDoctor = User.IsInRole("Doctor");
+        var isAdmin  = User.IsInRole("Admin");
 
-        var response = await _caseService.GetUserCasesAsync(userId, isAdmin);
+        var response = await _caseService.GetUserCasesAsync(userId, isDoctor, isAdmin);
         
         if (!response.IsSuccess)
             return BadRequest(response);
