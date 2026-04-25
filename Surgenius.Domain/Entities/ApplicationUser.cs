@@ -15,6 +15,7 @@ public class ApplicationUser : IdentityUser<Guid>
     public string? OtpCode { get; set; }
     public DateTime? OtpExpiry { get; set; }
     public bool IsInviteCodeActive { get; set; } = true;
+    public string? Location { get; set; }
 
     public ICollection<Case> Cases { get; set; } = new List<Case>();
 }

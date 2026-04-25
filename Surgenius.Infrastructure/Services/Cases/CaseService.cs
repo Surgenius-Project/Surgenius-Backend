@@ -210,7 +210,7 @@ public class CaseService : ICaseService
         return ApiResponse<CaseDetailDto>.Success(dto);
     }
 
-    public async Task<ApiResponse<bool>> DeleteCaseAsync(Guid userId, Guid caseId)
+    public async Task<ApiResponse<bool>> DeleteCaseAsync(Guid userId, bool isAdmin, Guid caseId)
     {
         // 1. Fetch the case including Scans
         var @case = await _context.Cases
@@ -220,9 +220,9 @@ public class CaseService : ICaseService
         if (@case == null)
             return ApiResponse<bool>.Failure("Case not found.");
 
-        // 2. Ownership Check: Only the creator can delete
-        if (@case.UserId != userId)
-            return ApiResponse<bool>.Failure("Access denied. Only the owner of this case can delete it.");
+        // 2. Ownership Check: Only the owner or Admin can delete
+        if (!isAdmin && @case.UserId != userId)
+            return ApiResponse<bool>.Failure("Access denied. Only the owner of this case or an Admin can delete it.");
 
         try
         {

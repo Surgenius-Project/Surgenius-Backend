@@ -33,7 +33,7 @@ public class ScansController : ControllerBase
     // Doctor uploads a scan for one of their cases.
     // ──────────────────────────────────────────────────────────────────────
     [HttpPost]
-    [Authorize(Roles = "Doctor")]
+    [Authorize(Roles = "Admin,Doctor")]
     [Consumes("multipart/form-data")]
     public async Task<IActionResult> UploadScan([FromForm] ScanUploadRequest request)
     {

@@ -25,7 +25,7 @@ public class AnalysisController : ControllerBase
     // Doctor only - must own the case containing the scan.
     // --------------------------------------------------------------------------
     [HttpPost("process/{scanId:guid}")]
-    [Authorize(Roles = "Doctor")]
+    [Authorize(Roles = "Admin,Doctor")]
     public async Task<IActionResult> ProcessScan(Guid scanId)
     {
         var userId = User.GetUserId();

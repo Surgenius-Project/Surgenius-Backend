@@ -16,6 +16,8 @@ using Surgenius.Infrastructure.Data.Context;
 using Surgenius.Application.Interfaces.Analysis;
 using Surgenius.Infrastructure.Services.Analysis;
 using Surgenius.Application.Interfaces.Cases;
+using Surgenius.Application.Interfaces.Profile;
+using Surgenius.Infrastructure.Services.Profile;
 
 namespace Surgenius.Infrastructure.Configurations;
 
@@ -46,6 +48,7 @@ public static class IdentityConfiguration
         services.AddScoped<IScanService, ScanService>();
         services.AddScoped<IFileStorageService, LocalFileStorageService>();
         services.AddScoped<IAnalysisService, MockAnalysisService>();
+        services.AddScoped<IProfileService, ProfileService>();
 
         return services;
     }

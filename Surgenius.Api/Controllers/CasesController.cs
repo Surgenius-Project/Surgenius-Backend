@@ -19,7 +19,7 @@ public class CasesController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Doctor")]
+    [Authorize(Roles = "Admin,Doctor")]
     public async Task<IActionResult> CreateCase([FromBody] CreateCaseDto request)
     {
         var userId = User.GetUserId();
@@ -50,7 +50,7 @@ public class CasesController : ControllerBase
     }
 
     [HttpPost("toggle-access")]
-    [Authorize(Roles = "Doctor")]
+    [Authorize(Roles = "Admin,Doctor")]
     public async Task<IActionResult> ToggleStudentAccess()
     {
         var userId = User.GetUserId();
@@ -79,11 +79,12 @@ public class CasesController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
-    [Authorize(Roles = "Doctor")]
+    [Authorize(Roles = "Admin,Doctor")]
     public async Task<IActionResult> DeleteCase(Guid id)
     {
         var userId = User.GetUserId();
-        var response = await _caseService.DeleteCaseAsync(userId, id);
+        var isAdmin = User.IsInRole("Admin");
+        var response = await _caseService.DeleteCaseAsync(userId, isAdmin, id);
         
         if (!response.IsSuccess)
             return BadRequest(response);

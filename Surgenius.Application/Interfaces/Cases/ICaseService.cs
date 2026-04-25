@@ -29,5 +29,5 @@ public interface ICaseService
     /// <summary>
     /// Deletes a case and all its associated data (scans, analysis, files).
     /// </summary>
-    Task<ApiResponse<bool>> DeleteCaseAsync(Guid userId, Guid caseId);
+    Task<ApiResponse<bool>> DeleteCaseAsync(Guid userId, bool isAdmin, Guid caseId);
 }
