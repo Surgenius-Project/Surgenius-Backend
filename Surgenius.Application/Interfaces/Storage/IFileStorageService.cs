@@ -15,4 +15,9 @@ public interface IFileStorageService
     /// Saves AI-generated masks or analysis visuals to the analysis directory.
     /// </summary>
     Task<string> SaveAnalysisImageAsync(Stream fileStream, string fileName);
+    
+    /// <summary>
+    /// Deletes a file from the server storage given its relative path.
+    /// </summary>
+    Task<bool> DeleteFileAsync(string? relativePath);
 }

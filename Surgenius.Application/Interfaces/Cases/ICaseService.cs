@@ -11,7 +11,12 @@ public interface ICaseService
     /// Returns cases for the calling user.
     /// Admins see ALL cases; Doctors/Students see only their own.
     /// </summary>
-    Task<ApiResponse<IEnumerable<CaseDto>>> GetUserCasesAsync(Guid userId, bool isDoctor, bool isAdmin);
+    Task<ApiResponse<IEnumerable<CaseDto>>> GetUserCasesAsync(Guid userId, bool isDoctor, bool isAdmin, string? searchTerm = null, string? stage = null);
+
+    /// <summary>
+    /// Toggles the IsInviteCodeActive flag for a Doctor.
+    /// </summary>
+    Task<ApiResponse<bool>> ToggleStudentAccessAsync(Guid doctorId);
 
     /// <summary>
     /// Returns full case details including scans.
@@ -20,4 +25,9 @@ public interface ICaseService
     /// Students: must be linked to the Doctor who owns it.
     /// </summary>
     Task<ApiResponse<CaseDetailDto>> GetCaseByIdAsync(Guid userId, bool isDoctor, bool isAdmin, Guid caseId);
+
+    /// <summary>
+    /// Deletes a case and all its associated data (scans, analysis, files).
+    /// </summary>
+    Task<ApiResponse<bool>> DeleteCaseAsync(Guid userId, Guid caseId);
 }

@@ -43,6 +43,7 @@ public class CaseDto
     public string PatientGender { get; set; } = string.Empty;
     public string PatientPhone { get; set; } = string.Empty;
     public string? Description { get; set; }
+    public string? LatestStage { get; set; }
 }
 
 /// <summary>

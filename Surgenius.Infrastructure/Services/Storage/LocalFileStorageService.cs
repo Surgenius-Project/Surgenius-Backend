@@ -4,50 +4,67 @@ using Surgenius.Application.Interfaces.Storage;
 namespace Surgenius.Infrastructure.Services.Storage;
 
 /// <summary>
-/// Saves files to wwwroot/uploads/scans using a GUID-based unique filename.
+/// Saves and deletes files from wwwroot/uploads using a GUID-based unique filename.
 /// </summary>
 public class LocalFileStorageService : IFileStorageService
 {
-    private const string RelativeFolder = "uploads/scans";
-    private readonly string _absoluteFolder;
-
-    private const string AnalysisRelativeFolder = "uploads/analysis";
-    private readonly string _analysisAbsoluteFolder;
+    private readonly string _webRootPath;
+    private const string ScansFolder = "uploads/scans";
+    private const string AnalysisFolder = "uploads/analysis";
 
     public LocalFileStorageService(IWebHostEnvironment env)
     {
-        // Resolves to <project>/wwwroot/uploads/scans
-        _absoluteFolder = Path.Combine(env.WebRootPath, "uploads", "scans");
-        Directory.CreateDirectory(_absoluteFolder);
-
-        // Resolves to <project>/wwwroot/uploads/analysis
-        _analysisAbsoluteFolder = Path.Combine(env.WebRootPath, "uploads", "analysis");
-        Directory.CreateDirectory(_analysisAbsoluteFolder);
+        _webRootPath = env.WebRootPath;
+        
+        // Ensure directories exist
+        Directory.CreateDirectory(Path.Combine(_webRootPath, ScansFolder));
+        Directory.CreateDirectory(Path.Combine(_webRootPath, AnalysisFolder));
     }
 
     public async Task<string> SaveScanAsync(Stream fileStream, string fileName)
     {
-        // Generate a unique filename to prevent collisions
-        var extension = Path.GetExtension(fileName);
-        var uniqueFileName = $"{Guid.NewGuid()}{extension}";
-        var absolutePath = Path.Combine(_absoluteFolder, uniqueFileName);
+        var uniqueFileName = $"{Guid.NewGuid()}{Path.GetExtension(fileName)}";
+        var relativePath = Path.Combine(ScansFolder, uniqueFileName).Replace("\\", "/");
+        var absolutePath = Path.Combine(_webRootPath, relativePath);
 
         using var outputStream = new FileStream(absolutePath, FileMode.Create);
         await fileStream.CopyToAsync(outputStream);
 
-        // Return the relative web-accessible path
-        return $"/{RelativeFolder}/{uniqueFileName}";
+        return $"/{relativePath}";
     }
 
     public async Task<string> SaveAnalysisImageAsync(Stream fileStream, string fileName)
     {
-        var extension = Path.GetExtension(fileName);
-        var uniqueFileName = $"{Guid.NewGuid()}{extension}";
-        var absolutePath = Path.Combine(_analysisAbsoluteFolder, uniqueFileName);
+        var uniqueFileName = $"{Guid.NewGuid()}{Path.GetExtension(fileName)}";
+        var relativePath = Path.Combine(AnalysisFolder, uniqueFileName).Replace("\\", "/");
+        var absolutePath = Path.Combine(_webRootPath, relativePath);
 
         using var outputStream = new FileStream(absolutePath, FileMode.Create);
         await fileStream.CopyToAsync(outputStream);
 
-        return $"/{AnalysisRelativeFolder}/{uniqueFileName}";
+        return $"/{relativePath}";
+    }
+
+    public async Task<bool> DeleteFileAsync(string? relativePath)
+    {
+        if (string.IsNullOrWhiteSpace(relativePath))
+            return false;
+
+        try
+        {
+            var cleanPath = relativePath.TrimStart('/').Replace("/", Path.DirectorySeparatorChar.ToString());
+            var absolutePath = Path.Combine(_webRootPath, cleanPath);
+
+            if (File.Exists(absolutePath))
+            {
+                File.Delete(absolutePath);
+                return await Task.FromResult(true);
+            }
+            return false;
+        }
+        catch
+        {
+            return false;
+        }
     }
 }

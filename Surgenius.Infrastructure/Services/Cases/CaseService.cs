@@ -4,16 +4,19 @@ using Surgenius.Application.DTOs.Cases;
 using Surgenius.Application.Interfaces.Cases;
 using Surgenius.Infrastructure.Data.Context;
 using Surgenius.Domain.Models;
+using Surgenius.Application.Interfaces.Storage;
 
 namespace Surgenius.Infrastructure.Services.Cases;
 
 public class CaseService : ICaseService
 {
     private readonly AppDbContext _context;
+    private readonly IFileStorageService _storageService;
 
-    public CaseService(AppDbContext context)
+    public CaseService(AppDbContext context, IFileStorageService storageService)
     {
         _context = context;
+        _storageService = storageService;
     }
 
     public async Task<ApiResponse<CaseDto>> CreateCaseAsync(Guid userId, CreateCaseDto request)
@@ -58,7 +61,7 @@ public class CaseService : ICaseService
         }, "Case created successfully.");
     }
 
-    public async Task<ApiResponse<IEnumerable<CaseDto>>> GetUserCasesAsync(Guid userId, bool isDoctor, bool isAdmin)
+    public async Task<ApiResponse<IEnumerable<CaseDto>>> GetUserCasesAsync(Guid userId, bool isDoctor, bool isAdmin, string? searchTerm = null, string? stage = null)
     {
         IQueryable<Case> query;
 
@@ -93,6 +96,24 @@ public class CaseService : ICaseService
             query = _context.Cases.Where(c => c.UserId == student.DoctorId.Value);
         }
 
+        // Apply Search Filter (Patient Name)
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+           // query = query.Where(c => c.PatientName.Contains(searchTerm));
+
+            query = query.Where(c => c.PatientName.ToLower().Contains(searchTerm.ToLower()));
+        }
+
+        // Apply Stage Filter (I, II, III)
+        // A case is included if ANY of its scans have an analysis result matching the stage.
+        if (!string.IsNullOrWhiteSpace(stage))
+        {
+            // Normalize stage input (e.g., "I" -> "Stage I")
+            var stageLabel = stage.StartsWith("Stage", StringComparison.OrdinalIgnoreCase) ? stage : $"Stage {stage}";
+            
+            query = query.Where(c => c.Scans.Any(s => _context.AnalysisResults.Any(a => a.ScanId == s.Id && a.StageLabel == stageLabel)));
+        }
+
         var cases = await query
             .OrderByDescending(c => c.CreationDate)
             .Select(c => new CaseDto
@@ -104,11 +125,28 @@ public class CaseService : ICaseService
                 PatientAge = c.PatientAge,
                 PatientGender = c.PatientGender,
                 PatientPhone = c.PatientPhone,
-                Description = c.Description
+                Description = c.Description,
+                LatestStage = c.Scans
+                    .SelectMany(s => _context.AnalysisResults.Where(a => a.ScanId == s.Id))
+                    .Select(a => a.StageLabel)
+                    .FirstOrDefault()
             })
             .ToListAsync();
 
         return ApiResponse<IEnumerable<CaseDto>>.Success(cases);
+    }
+
+    public async Task<ApiResponse<bool>> ToggleStudentAccessAsync(Guid doctorId)
+    {
+        var doctor = await _context.Users.FirstOrDefaultAsync(u => u.Id == doctorId);
+        if (doctor == null)
+            return ApiResponse<bool>.Failure("Doctor not found.");
+
+        doctor.IsInviteCodeActive = !doctor.IsInviteCodeActive;
+        
+        await _context.SaveChangesAsync();
+        
+        return ApiResponse<bool>.Success(doctor.IsInviteCodeActive, $"Student access {(doctor.IsInviteCodeActive ? "enabled" : "disabled")} successfully.");
     }
 
     public async Task<ApiResponse<CaseDetailDto>> GetCaseByIdAsync(Guid userId, bool isDoctor, bool isAdmin, Guid caseId)
@@ -170,5 +208,65 @@ public class CaseService : ICaseService
         };
 
         return ApiResponse<CaseDetailDto>.Success(dto);
+    }
+
+    public async Task<ApiResponse<bool>> DeleteCaseAsync(Guid userId, Guid caseId)
+    {
+        // 1. Fetch the case including Scans
+        var @case = await _context.Cases
+            .Include(c => c.Scans)
+            .FirstOrDefaultAsync(c => c.Id == caseId);
+
+        if (@case == null)
+            return ApiResponse<bool>.Failure("Case not found.");
+
+        // 2. Ownership Check: Only the creator can delete
+        if (@case.UserId != userId)
+            return ApiResponse<bool>.Failure("Access denied. Only the owner of this case can delete it.");
+
+        try
+        {
+            // 3. Collect paths for file system cleanup
+            var filePathsToDelete = new List<string?>();
+            
+            foreach (var scan in @case.Scans)
+            {
+                filePathsToDelete.Add(scan.ScanPath);
+                
+                // Find associated AnalysisResult
+                var analysis = await _context.AnalysisResults.FirstOrDefaultAsync(a => a.ScanId == scan.Id);
+                if (analysis != null)
+                {
+                    filePathsToDelete.Add(analysis.MaskPath);
+                    filePathsToDelete.Add(analysis.HighlightedPath);
+                    // Model3DPath if dynamic...
+                    
+                    _context.AnalysisResults.Remove(analysis);
+                }
+                
+                _context.Scans.Remove(scan);
+            }
+
+            // 4. Remove Case from DB
+            _context.Cases.Remove(@case);
+            
+            // 5. Save Changes to DB
+            await _context.SaveChangesAsync();
+
+            // 6. Physical File Cleanup (Post-DB success)
+            foreach (var path in filePathsToDelete)
+            {
+                if (!string.IsNullOrWhiteSpace(path))
+                {
+                    await _storageService.DeleteFileAsync(path);
+                }
+            }
+
+            return ApiResponse<bool>.Success(true, "Case and all associated data deleted successfully.");
+        }
+        catch (Exception ex)
+        {
+            return ApiResponse<bool>.Failure($"An error occurred during deletion: {ex.Message}");
+        }
     }
 }
