@@ -23,13 +23,13 @@ public class CasesController : ControllerBase
     public async Task<IActionResult> CreateCase([FromBody] CreateCaseDto request)
     {
         var userId = User.GetUserId();
-        
+
         // Assuming ICaseService.CreateCaseAsync takes userId and the DTO
         var response = await _caseService.CreateCaseAsync(userId, request);
-        
+
         if (!response.IsSuccess)
             return BadRequest(response);
-            
+
         return Ok(response);
     }
 
@@ -37,12 +37,12 @@ public class CasesController : ControllerBase
     [Authorize(Roles = "Admin,Doctor,Student")]
     public async Task<IActionResult> GetUserCases([FromQuery] string? searchTerm, [FromQuery] string? stage)
     {
-        var userId   = User.GetUserId();
+        var userId = User.GetUserId();
         var isDoctor = User.IsInRole("Doctor");
-        var isAdmin  = User.IsInRole("Admin");
+        var isAdmin = User.IsInRole("Admin");
 
         var response = await _caseService.GetUserCasesAsync(userId, isDoctor, isAdmin, searchTerm, stage);
-        
+
         if (!response.IsSuccess)
             return BadRequest(response);
 
@@ -55,7 +55,7 @@ public class CasesController : ControllerBase
     {
         var userId = User.GetUserId();
         var response = await _caseService.ToggleStudentAccessAsync(userId);
-        
+
         if (!response.IsSuccess)
             return BadRequest(response);
 
@@ -66,9 +66,9 @@ public class CasesController : ControllerBase
     [Authorize(Roles = "Admin,Doctor,Student")]
     public async Task<IActionResult> GetCase(Guid id)
     {
-        var userId   = User.GetUserId();
+        var userId = User.GetUserId();
         var isDoctor = User.IsInRole("Doctor");
-        var isAdmin  = User.IsInRole("Admin");
+        var isAdmin = User.IsInRole("Admin");
 
         var response = await _caseService.GetCaseByIdAsync(userId, isDoctor, isAdmin, id);
 
@@ -85,7 +85,7 @@ public class CasesController : ControllerBase
         var userId = User.GetUserId();
         var isAdmin = User.IsInRole("Admin");
         var response = await _caseService.DeleteCaseAsync(userId, isAdmin, id);
-        
+
         if (!response.IsSuccess)
             return BadRequest(response);
 

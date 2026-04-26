@@ -15,9 +15,9 @@ public static class ClaimsPrincipalExtensions
             throw new ArgumentNullException(nameof(principal));
 
         // Look for 'sub' or the name identifier schema
-        var userIdString = principal.FindFirst(JwtRegisteredClaimNames.Sub)?.Value 
+        var userIdString = principal.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
                           ?? principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        
+
         if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out var userId))
             throw new UnauthorizedAccessException("User ID claim is missing or invalid.");
 

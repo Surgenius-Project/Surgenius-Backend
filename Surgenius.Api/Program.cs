@@ -73,7 +73,9 @@ namespace Surgenius.Api
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
                 options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultSignInScheme = Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationDefaults.AuthenticationScheme;
             })
+            .AddCookie()
             .AddJwtBearer(options =>
             {
                 var jwtKey = builder.Configuration["Jwt:Key"];
@@ -81,10 +83,10 @@ namespace Surgenius.Api
                 {
                     // In a real production app, you might want to throw here. 
                     // For now, we'll use a fallback or ensure it's clear it's missing.
-                    jwtKey = "DefaultSuperSecretKey1234567890!"; 
+                    jwtKey = "DefaultSuperSecretKey1234567890!";
                 }
 
-                options.IncludeErrorDetails = true; 
+                options.IncludeErrorDetails = true;
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,
@@ -96,6 +98,12 @@ namespace Surgenius.Api
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
                     ClockSkew = TimeSpan.Zero
                 };
+            })
+            .AddGoogle(options =>
+            {
+                options.ClientId = builder.Configuration["Authentication:Google:ClientId"] ?? "PLACEHOLDER_CLIENT_ID";
+                options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? "PLACEHOLDER_CLIENT_SECRET";
+                options.CallbackPath = "/signin-google";
             });
 
             builder.Services.AddAuthorization(options =>
@@ -134,7 +142,7 @@ namespace Surgenius.Api
             // Setup static files with custom content types (for .obj files etc)
             var provider = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider();
             provider.Mappings[".obj"] = "application/octet-stream";
-            
+
             app.UseStaticFiles(new StaticFileOptions
             {
                 ContentTypeProvider = provider

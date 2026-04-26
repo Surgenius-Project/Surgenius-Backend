@@ -48,9 +48,9 @@ public class ScansController : ControllerBase
         var dto = new UploadScanDto
         {
             FileStream = request.File.OpenReadStream(),
-            FileName   = request.File.FileName,
-            CaseId     = request.CaseId,
-            ScanType   = request.ScanType
+            FileName = request.File.FileName,
+            CaseId = request.CaseId,
+            ScanType = request.ScanType
         };
 
         var response = await _scanService.UploadScanAsync(userId, isAdmin, dto);
@@ -69,9 +69,9 @@ public class ScansController : ControllerBase
     [Authorize(Roles = "Admin,Doctor,Student")]
     public async Task<IActionResult> GetScansByCase(Guid caseId)
     {
-        var userId   = User.GetUserId();
+        var userId = User.GetUserId();
         var isDoctor = User.IsInRole("Doctor");
-        var isAdmin  = User.IsInRole("Admin");
+        var isAdmin = User.IsInRole("Admin");
 
         var response = await _scanService.GetScansByCaseAsync(userId, isDoctor, isAdmin, caseId);
 

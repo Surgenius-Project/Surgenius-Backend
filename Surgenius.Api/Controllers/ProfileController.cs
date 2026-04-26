@@ -23,7 +23,7 @@ public class ProfileController : ControllerBase
     {
         var userId = User.GetUserId();
         var response = await _profileService.GetProfileAsync(userId);
-        
+
         if (!response.IsSuccess)
             return BadRequest(response);
 
@@ -35,7 +35,7 @@ public class ProfileController : ControllerBase
     {
         var userId = User.GetUserId();
         var response = await _profileService.UpdateProfileAsync(userId, request);
-        
+
         if (!response.IsSuccess)
             return BadRequest(response);
 
@@ -48,7 +48,7 @@ public class ProfileController : ControllerBase
     {
         var userId = User.GetUserId();
         var response = await _profileService.GetLinkedStudentsAsync(userId);
-        
+
         if (!response.IsSuccess)
             return BadRequest(response);
 
@@ -61,7 +61,7 @@ public class ProfileController : ControllerBase
     {
         var userId = User.GetUserId();
         var response = await _profileService.RemoveStudentAsync(userId, studentId);
-        
+
         if (!response.IsSuccess)
             return BadRequest(response);
 
@@ -73,7 +73,7 @@ public class ProfileController : ControllerBase
     {
         var userId = User.GetUserId();
         var response = await _profileService.ChangePasswordAsync(userId, request);
-        
+
         if (!response.IsSuccess)
             return BadRequest(response);
 
@@ -86,7 +86,7 @@ public class ProfileController : ControllerBase
     {
         var userId = User.GetUserId();
         var response = await _profileService.GetOrGenerateInviteCodeAsync(userId);
-        
+
         if (!response.IsSuccess)
             return BadRequest(response);
 

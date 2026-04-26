@@ -34,7 +34,7 @@ public class AnalysisController : ControllerBase
         try
         {
             var result = await _analysisService.ProcessScanAsync(scanId, userId, isAdmin);
-            
+
             // Map to DTO and transform relative paths to absolute URLs
             var dto = new AnalysisReadDto
             {
@@ -68,9 +68,9 @@ public class AnalysisController : ControllerBase
     [Authorize(Roles = "Admin,Doctor,Student")]
     public async Task<IActionResult> GetAnalysisByScan(Guid scanId)
     {
-        var userId   = User.GetUserId();
+        var userId = User.GetUserId();
         var isDoctor = User.IsInRole("Doctor");
-        var isAdmin  = User.IsInRole("Admin");
+        var isAdmin = User.IsInRole("Admin");
 
         var response = await _analysisService.GetAnalysisByScanAsync(userId, isDoctor, isAdmin, scanId);
 
@@ -102,10 +102,10 @@ public class AnalysisController : ControllerBase
 
         // Build absolute URL from request context
         var baseUrl = $"{Request.Scheme}://{Request.Host}";
-        
+
         // Ensure path starts with /
         var path = relativePath.StartsWith("/") ? relativePath : $"/{relativePath}";
-        
+
         return $"{baseUrl}{path}";
     }
 }
