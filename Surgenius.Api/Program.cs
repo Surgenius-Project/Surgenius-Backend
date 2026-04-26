@@ -152,11 +152,12 @@ namespace Surgenius.Api
             // Use Global Exception Handler
             app.UseMiddleware<ExceptionHandlingMiddleware>();
 
+            app.UseRouting();
+
             app.UseCors("AllowAll");
 
             app.UseAuthentication();
             app.UseAuthorization();
-
 
             app.MapControllers();
 
