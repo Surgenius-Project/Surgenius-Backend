@@ -101,7 +101,7 @@ namespace Surgenius.Api
             })
             .AddGoogle(options =>
             {
-                options.ClientId = builder.Configuration["Authentication:Google:ClientId"] ?? "PLACEHOLDER_CLIENT_ID";
+                options.ClientId = builder.Configuration["Authentication:Google:WebClientId"] ?? "PLACEHOLDER_CLIENT_ID";
                 options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? "PLACEHOLDER_CLIENT_SECRET";
                 options.CallbackPath = "/signin-google";
             });

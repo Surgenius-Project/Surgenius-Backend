@@ -100,11 +100,12 @@ public class AccountController : ControllerBase
 
         try
         {
-            var mobileClientId = _configuration["Authentication:Google:MobileClientId"];
+            var webClientId = _configuration["Authentication:Google:WebClientId"];
+            var androidClientId = _configuration["Authentication:Google:AndroidClientId"];
             
             var settings = new GoogleJsonWebSignature.ValidationSettings
             {
-                Audience = new[] { mobileClientId }
+                Audience = new List<string> { webClientId!, androidClientId! }
             };
 
             var payload = await GoogleJsonWebSignature.ValidateAsync(request.IdToken, settings);
