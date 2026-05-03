@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 using Surgenius.Application.Interfaces.Auth;
 using Surgenius.Domain.Models;
 using Surgenius.Domain.Enums;
+using Google.Apis.Auth;
+using Surgenius.Application.DTOs.Auth.Login;
 
 namespace Surgenius.Api.Controllers;
 
@@ -16,11 +18,13 @@ public class AccountController : ControllerBase
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ITokenService _tokenService;
+    private readonly IConfiguration _configuration;
 
-    public AccountController(UserManager<ApplicationUser> userManager, ITokenService tokenService)
+    public AccountController(UserManager<ApplicationUser> userManager, ITokenService tokenService, IConfiguration configuration)
     {
         _userManager = userManager;
         _tokenService = tokenService;
+        _configuration = configuration;
     }
 
     [HttpGet("signin-google")]
@@ -86,6 +90,75 @@ public class AccountController : ControllerBase
             Role = primaryRole,
             RequiresRoleAssignment = isNewUser
         });
+    }
+
+    [HttpPost("google-mobile-login")]
+    public async Task<IActionResult> GoogleMobileLogin([FromBody] GoogleMobileLoginRequest request)
+    {
+        if (string.IsNullOrEmpty(request.IdToken))
+            return BadRequest(new { Message = "IdToken is required." });
+
+        try
+        {
+            var mobileClientId = _configuration["Authentication:Google:MobileClientId"];
+            
+            var settings = new GoogleJsonWebSignature.ValidationSettings
+            {
+                Audience = new[] { mobileClientId }
+            };
+
+            var payload = await GoogleJsonWebSignature.ValidateAsync(request.IdToken, settings);
+
+            var email = payload.Email;
+            var name = payload.Name;
+
+            if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(name))
+                return BadRequest(new { Message = "Invalid token payload: missing email or name." });
+
+            var user = await _userManager.FindByEmailAsync(email);
+            var isNewUser = false;
+
+            if (user == null)
+            {
+                user = new ApplicationUser
+                {
+                    UserName = email,
+                    Email = email,
+                    FullName = name,
+                    EmailConfirmed = true 
+                };
+
+                var createResult = await _userManager.CreateAsync(user);
+                if (!createResult.Succeeded)
+                {
+                    return BadRequest(new { Message = "Failed to create the user account.", Errors = createResult.Errors.Select(e => e.Description) });
+                }
+
+                isNewUser = true;
+            }
+
+            var roles = await _userManager.GetRolesAsync(user);
+            var primaryRole = roles.FirstOrDefault() ?? "No Role";
+
+            var token = _tokenService.GenerateToken(user, primaryRole);
+
+            return Ok(new
+            {
+                Token = token,
+                Email = user.Email,
+                Name = user.FullName,
+                Role = primaryRole,
+                RequiresRoleAssignment = isNewUser
+            });
+        }
+        catch (InvalidJwtException ex)
+        {
+            return Unauthorized(new { Message = "Invalid Google token.", Error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { Message = "An error occurred while validating the Google token.", Error = ex.Message });
+        }
     }
 
     [HttpPost("complete-registration")]
