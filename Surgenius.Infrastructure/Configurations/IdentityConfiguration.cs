@@ -18,6 +18,7 @@ using Surgenius.Infrastructure.Services.Analysis;
 using Surgenius.Application.Interfaces.Cases;
 using Surgenius.Application.Interfaces.Profile;
 using Surgenius.Infrastructure.Services.Profile;
+using System;
 
 namespace Surgenius.Infrastructure.Configurations;
 
@@ -47,7 +48,13 @@ public static class IdentityConfiguration
         services.AddScoped<ICaseService, CaseService>();
         services.AddScoped<IScanService, ScanService>();
         services.AddScoped<IFileStorageService, LocalFileStorageService>();
-        services.AddScoped<IAnalysisService, MockAnalysisService>();
+        
+        services.AddScoped<IAnalysisService, AnalysisService>();
+        services.AddHttpClient("AiApiClient", client => 
+        {
+            client.Timeout = TimeSpan.FromSeconds(60);
+        });
+
         services.AddScoped<IProfileService, ProfileService>();
 
         return services;
