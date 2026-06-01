@@ -16,4 +16,11 @@ public interface IAnalysisService
     /// Access rules: Doctor must own the case; Student must be linked to the owning doctor.
     /// </summary>
     Task<ApiResponse<AnalysisReadDto>> GetAnalysisByScanAsync(Guid userId, bool isDoctor, bool isAdmin, Guid scanId);
+
+    /// <summary>
+    /// Send clinical lab metrics to the Hugging Face risk-assessment model
+    /// to evaluate liver disease risk before any scan is taken.
+    /// This is independent from the CT Scan analysis pipeline.
+    /// </summary>
+    Task<RiskAssessmentResponseDto> AssessRiskAsync(RiskAssessmentRequestDto dto);
 }

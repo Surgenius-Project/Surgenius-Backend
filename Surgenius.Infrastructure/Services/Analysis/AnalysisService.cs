@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
@@ -200,4 +201,59 @@ public class AnalysisService : IAnalysisService
         HighlightedPath = a.HighlightedPath,
         Model3DPath = a.Model3DPath
     };
+
+    // ══════════════════════════════════════════════════════════════════════
+    // CLINICAL RISK ASSESSMENT  (independent from CT Scan pipeline)
+    // Calls the Hugging Face ILPD model to evaluate liver disease risk.
+    // ══════════════════════════════════════════════════════════════════════
+    public async Task<RiskAssessmentResponseDto> AssessRiskAsync(RiskAssessmentRequestDto dto)
+    {
+        const string endpoint = "https://moutel258-ilpd.hf.space/predict-risk";
+
+        var client = _httpClientFactory.CreateClient("RiskApiClient");
+
+        _logger.LogInformation("Sending clinical risk assessment request to {Url}", endpoint);
+
+        HttpResponseMessage response;
+        try
+        {
+            response = await client.PostAsJsonAsync(endpoint, dto);
+        }
+        catch (TaskCanceledException)
+        {
+            _logger.LogError("Risk assessment request to {Url} timed out", endpoint);
+            throw new Exception("The risk assessment service is currently unavailable. Please try again later.");
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Failed to connect to risk assessment service at {Url}", endpoint);
+            throw new Exception("Unable to reach the risk assessment service. Please check your connection and try again.");
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorContent = await response.Content.ReadAsStringAsync();
+            _logger.LogError("Risk API Error: {StatusCode} - {Error}", response.StatusCode, errorContent);
+            throw new Exception("The risk assessment model returned an error. Please try again.");
+        }
+
+        var jsonResponse = await response.Content.ReadAsStringAsync();
+        var result = JsonSerializer.Deserialize<RiskAssessmentResponseDto>(jsonResponse, new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        });
+
+        if (result == null)
+        {
+            _logger.LogError("Risk API returned null or unparseable response: {Body}", jsonResponse);
+            throw new Exception("Invalid response received from the risk assessment model.");
+        }
+
+        _logger.LogInformation(
+            "Risk assessment completed — RiskLevel: {RiskLevel}, Confidence: {Confidence}, NeedScan: {NeedScan}",
+            result.RiskLevel, result.Confidence, result.NeedScan);
+
+        return result;
+    }
 }
+

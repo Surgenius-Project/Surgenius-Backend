@@ -4,7 +4,6 @@ using Surgenius.Api.Extensions;
 using Surgenius.Application.DTOs.Analysis;
 using Surgenius.Application.Interfaces.Analysis;
 using Surgenius.Application.Models.Responses;
-
 namespace Surgenius.Api.Controllers;
 
 [ApiController]
@@ -86,6 +85,30 @@ public class AnalysisController : ControllerBase
         }
 
         return Ok(response);
+    }
+
+    // --------------------------------------------------------------------------
+    // POST api/analysis/assess-risk
+    // Send clinical lab metrics to the Hugging Face risk-assessment model.
+    // Doctor only - evaluates liver disease risk BEFORE taking any scans.
+    // This endpoint is completely independent from the CT Scan pipeline.
+    // --------------------------------------------------------------------------
+    [HttpPost("assess-risk")]
+    [Authorize(Roles = "Admin,Doctor")]
+    public async Task<IActionResult> AssessRisk([FromBody] RiskAssessmentRequestDto request)
+    {
+        try
+        {
+            var result = await _analysisService.AssessRiskAsync(request);
+
+            var response = ApiResponse<RiskAssessmentResponseDto>.Success(result, "Risk assessment completed successfully.");
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            var errorResponse = ApiResponse<RiskAssessmentResponseDto>.Failure(ex.Message);
+            return BadRequest(errorResponse);
+        }
     }
 
     // --------------------------------------------------------------------------

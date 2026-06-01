@@ -54,6 +54,10 @@ public static class IdentityConfiguration
         {
             client.Timeout = TimeSpan.FromSeconds(60);
         });
+        services.AddHttpClient("RiskApiClient", client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(60);
+        });
 
         services.AddScoped<IProfileService, ProfileService>();
 
