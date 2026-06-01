@@ -15,6 +15,7 @@ namespace Surgenius.Infrastructure.Data.Context
         public DbSet<Scan> Scans { get; set; }
         public DbSet<AnalysisResult> AnalysisResults { get; set; }
         public DbSet<ThreeDModel> ThreeDModels { get; set; }
+        public DbSet<PatientRiskAssessment> RiskAssessments { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

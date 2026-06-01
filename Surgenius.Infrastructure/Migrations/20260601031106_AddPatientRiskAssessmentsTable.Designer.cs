@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Surgenius.Infrastructure.Data.Context;
 
@@ -11,9 +12,11 @@ using Surgenius.Infrastructure.Data.Context;
 namespace Surgenius.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260601031106_AddPatientRiskAssessmentsTable")]
+    partial class AddPatientRiskAssessmentsTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -371,9 +374,6 @@ namespace Surgenius.Infrastructure.Migrations
                     b.Property<int>("AspartateAminotransferase")
                         .HasColumnType("int");
 
-                    b.Property<Guid>("CaseId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<double>("Confidence")
                         .HasColumnType("float");
 
@@ -405,8 +405,6 @@ namespace Surgenius.Infrastructure.Migrations
                         .HasColumnType("float");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("CaseId");
 
                     b.ToTable("RiskAssessments");
                 });
@@ -542,17 +540,6 @@ namespace Surgenius.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("Surgenius.Domain.Models.PatientRiskAssessment", b =>
-                {
-                    b.HasOne("Surgenius.Domain.Models.Case", "Case")
-                        .WithMany()
-                        .HasForeignKey("CaseId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Case");
                 });
 
             modelBuilder.Entity("Surgenius.Domain.Models.Scan", b =>

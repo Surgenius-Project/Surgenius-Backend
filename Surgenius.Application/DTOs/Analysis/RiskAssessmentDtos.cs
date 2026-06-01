@@ -9,6 +9,9 @@ namespace Surgenius.Application.DTOs.Analysis;
 /// </summary>
 public class RiskAssessmentRequestDto
 {
+    [JsonIgnore]
+    public Guid CaseId { get; set; }
+
     [JsonPropertyName("Age")]
     public int Age { get; set; }
 

@@ -208,25 +208,30 @@ public class AnalysisService : IAnalysisService
     // ══════════════════════════════════════════════════════════════════════
     public async Task<RiskAssessmentResponseDto> AssessRiskAsync(RiskAssessmentRequestDto dto)
     {
-        const string endpoint = "https://moutel258-ilpd.hf.space/predict-risk";
-
         var client = _httpClientFactory.CreateClient("RiskApiClient");
+        var requestUrl = client.BaseAddress != null 
+            ? "predict-risk" 
+            : "https://moutel258-ilpd.hf.space/predict-risk";
 
-        _logger.LogInformation("Sending clinical risk assessment request to {Url}", endpoint);
+        var displayUrl = client.BaseAddress != null 
+            ? new Uri(client.BaseAddress, "predict-risk").ToString() 
+            : requestUrl;
+
+        _logger.LogInformation("Sending clinical risk assessment request to {Url}", displayUrl);
 
         HttpResponseMessage response;
         try
         {
-            response = await client.PostAsJsonAsync(endpoint, dto);
+            response = await client.PostAsJsonAsync(requestUrl, dto);
         }
         catch (TaskCanceledException)
         {
-            _logger.LogError("Risk assessment request to {Url} timed out", endpoint);
+            _logger.LogError("Risk assessment request to {Url} timed out", displayUrl);
             throw new Exception("The risk assessment service is currently unavailable. Please try again later.");
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "Failed to connect to risk assessment service at {Url}", endpoint);
+            _logger.LogError(ex, "Failed to connect to risk assessment service at {Url}", displayUrl);
             throw new Exception("Unable to reach the risk assessment service. Please check your connection and try again.");
         }
 
@@ -252,6 +257,38 @@ public class AnalysisService : IAnalysisService
         _logger.LogInformation(
             "Risk assessment completed — RiskLevel: {RiskLevel}, Confidence: {Confidence}, NeedScan: {NeedScan}",
             result.RiskLevel, result.Confidence, result.NeedScan);
+
+        try
+        {
+            var riskAssessment = new PatientRiskAssessment
+            {
+                Id = Guid.NewGuid(),
+                CaseId = dto.CaseId,
+                CreatedAt = DateTime.UtcNow,
+                Age = dto.Age,
+                Gender = dto.Gender,
+                TotalBilirubin = dto.TotalBilirubin,
+                DirectBilirubin = dto.DirectBilirubin,
+                AlkalinePhosphotase = dto.AlkalinePhosphotase,
+                AlamineAminotransferase = dto.AlamineAminotransferase,
+                AspartateAminotransferase = dto.AspartateAminotransferase,
+                TotalProtiens = dto.TotalProtiens,
+                Albumin = dto.Albumin,
+                AlbuminAndGlobulinRatio = dto.AlbuminAndGlobulinRatio,
+                RiskLevel = result.RiskLevel,
+                Confidence = result.Confidence,
+                NeedScan = result.NeedScan,
+                Recommendation = result.Recommendation
+            };
+
+            _context.RiskAssessments.Add(riskAssessment);
+            await _context.SaveChangesAsync();
+            _logger.LogInformation("Successfully saved PatientRiskAssessment with ID {RiskId} for Case {CaseId} to database.", riskAssessment.Id, dto.CaseId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to save PatientRiskAssessment to database for Case {CaseId}", dto.CaseId);
+        }
 
         return result;
     }

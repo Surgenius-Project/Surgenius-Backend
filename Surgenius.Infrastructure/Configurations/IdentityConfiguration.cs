@@ -56,6 +56,8 @@ public static class IdentityConfiguration
         });
         services.AddHttpClient("RiskApiClient", client =>
         {
+            var baseUrl = configuration["RiskApi:BaseUrl"] ?? "https://moutel258-ilpd.hf.space/";
+            client.BaseAddress = new Uri(baseUrl);
             client.Timeout = TimeSpan.FromSeconds(60);
         });
 
