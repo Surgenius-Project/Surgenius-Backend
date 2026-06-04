@@ -64,17 +64,24 @@ public class AnalysisService : IAnalysisService
         var client = _httpClientFactory.CreateClient("AiApiClient");
         client.Timeout = TimeSpan.FromSeconds(60); // 60s timeout for cold starts
 
-        var baseUrl = _configuration["AiApi:BaseUrl"] ?? "https://render-free-tier-placeholder.com";
+        var baseUrl = _configuration["AiApi:CtScanApiBaseUrl"] ?? _configuration["CtScanApiBaseUrl"] ?? "https://moutel258-surgenius-ai.hf.space/";
         var requestUrl = $"{baseUrl.TrimEnd('/')}/api/v1/analyze-scan";
 
         using var form = new MultipartFormDataContent();
         await using var fileStream = new FileStream(absolutePath, FileMode.Open, FileAccess.Read);
         var fileContent = new StreamContent(fileStream);
-        fileContent.Headers.ContentType = MediaTypeHeaderValue.Parse("application/octet-stream");
+        
+        var ext = Path.GetExtension(absolutePath).ToLowerInvariant();
+        var contentType = ext switch
+        {
+            ".png" => "image/png",
+            ".jpg" or ".jpeg" => "image/jpeg",
+            _ => "image/png"
+        };
+        fileContent.Headers.ContentType = MediaTypeHeaderValue.Parse(contentType);
         
         var fileName = Path.GetFileName(absolutePath);
         form.Add(fileContent, "file", fileName);
-        form.Add(new StringContent(scan.CaseId.ToString()), "patient_id");
 
         _logger.LogInformation("Sending scan {ScanId} to AI API at {Url}", scanId, requestUrl);
 
@@ -84,11 +91,11 @@ public class AnalysisService : IAnalysisService
         {
             var errorContent = await response.Content.ReadAsStringAsync();
             _logger.LogError("AI API Error: {StatusCode} - {Error}", response.StatusCode, errorContent);
-            throw new Exception("Failed to process scan through the AI API.");
+            throw new Exception($"Failed to process scan through the AI API. Status: {response.StatusCode}, Error: {errorContent}");
         }
 
         var jsonResponse = await response.Content.ReadAsStringAsync();
-        var aiResult = JsonSerializer.Deserialize<AiApiResponseDto>(jsonResponse, new JsonSerializerOptions 
+        var aiResult = JsonSerializer.Deserialize<ScanAnalysisResponseDto>(jsonResponse, new JsonSerializerOptions 
         { 
             PropertyNameCaseInsensitive = true 
         });
@@ -96,38 +103,19 @@ public class AnalysisService : IAnalysisService
         if (aiResult == null || aiResult.Status != "success")
             throw new Exception("Invalid response received from the AI API.");
 
-        // 4. Save Base64 Visuals to Disk
-        string? maskUrlPath = null;
-        string? highlightedUrlPath = null;
-
-        if (!string.IsNullOrEmpty(aiResult.Data.Visuals.MaskBase64))
-        {
-            var maskBytes = Convert.FromBase64String(aiResult.Data.Visuals.MaskBase64);
-            using var maskStream = new MemoryStream(maskBytes);
-            maskUrlPath = await _fileStorage.SaveAnalysisImageAsync(maskStream, $"mask_{scanId}.png");
-        }
-
-        if (!string.IsNullOrEmpty(aiResult.Data.Visuals.HighlightedBase64))
-        {
-            var highlightedBytes = Convert.FromBase64String(aiResult.Data.Visuals.HighlightedBase64);
-            using var highlightedStream = new MemoryStream(highlightedBytes);
-            highlightedUrlPath = await _fileStorage.SaveAnalysisImageAsync(highlightedStream, $"highlighted_{scanId}.png");
-        }
-
         // 5. Save Result to Database
         var result = new AnalysisResult
         {
             Id = Guid.NewGuid(),
             ScanId = scanId,
-            StageNumeric = aiResult.Data.Predictions.StageNumeric,
-            StageLabel = aiResult.Data.Predictions.StageLabel,
-            Confidence = Math.Round(aiResult.Data.Predictions.Confidence / 100.0, 4), // Convert percentage to 0.0 - 1.0, or keep it depending on DB schema.
-            // Documentation says: `max(rf_model.predict_proba(features)[0]) * 100 -> Returns a float percentage (e.g., 87.5)`
-            // Wait, previously Confidence was set to Math.Round(random.NextDouble() * 0.5 + 0.5, 2) which is between 0 and 1.
-            // If AI returns 87.5, it's out of 100. Previous mock used 0-1 scale. So I'll divide by 100.
-            TumorAreaPixels = aiResult.Data.Metrics.TumorAreaPixels,
-            MaskPath = maskUrlPath,
-            HighlightedPath = highlightedUrlPath,
+            StageNumeric = aiResult.TumorDetected ? 1 : 0,
+            StageLabel = aiResult.Diagnosis,
+            Confidence = aiResult.Confidence > 1.0 
+                ? Math.Round(aiResult.Confidence / 100.0, 4) 
+                : Math.Round(aiResult.Confidence, 4),
+            TumorAreaPixels = aiResult.TumorPixels,
+            MaskPath = null,
+            HighlightedPath = null,
             Model3DPath = "/uploads/models/liver_placeholder.obj" // Placeholder for 3D
         };
 

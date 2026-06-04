@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Surgenius.Application.Interfaces.Auth;
@@ -27,6 +28,7 @@ public class AccountController : ControllerBase
         _configuration = configuration;
     }
 
+    [AllowAnonymous]
     [HttpGet("signin-google")]
     public IActionResult GoogleLogin()
     {
@@ -34,6 +36,7 @@ public class AccountController : ControllerBase
         return Challenge(properties, GoogleDefaults.AuthenticationScheme);
     }
 
+    [AllowAnonymous]
     [HttpGet("google-response")]
     public async Task<IActionResult> GoogleResponse()
     {
@@ -92,6 +95,7 @@ public class AccountController : ControllerBase
         });
     }
 
+    [AllowAnonymous]
     [HttpPost("google-mobile-login")]
     public async Task<IActionResult> GoogleMobileLogin([FromBody] GoogleMobileLoginRequest request)
     {
