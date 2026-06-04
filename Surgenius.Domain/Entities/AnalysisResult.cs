@@ -15,6 +15,7 @@ public class AnalysisResult
     public long TumorAreaPixels { get; set; }
 
     // Visuals
+    public string? OriginalImagePath { get; set; } // AI generated 4-image grid
     public string? MaskPath { get; set; }      // AI generated mask
     public string? HighlightedPath { get; set; } // Original image with mask overlay
     public string? Model3DPath { get; set; }     // Future 3D model file path

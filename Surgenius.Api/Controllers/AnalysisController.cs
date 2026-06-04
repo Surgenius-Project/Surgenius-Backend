@@ -43,6 +43,7 @@ public class AnalysisController : ControllerBase
                 StageLabel = result.StageLabel,
                 Confidence = result.Confidence,
                 TumorAreaPixels = result.TumorAreaPixels,
+                OriginalImagePath = TransformToAbsoluteUrl(result.OriginalImagePath),
                 MaskPath = TransformToAbsoluteUrl(result.MaskPath),
                 HighlightedPath = TransformToAbsoluteUrl(result.HighlightedPath),
                 Model3DPath = TransformToAbsoluteUrl("/uploads/models/liver_placeholder.obj") // Final placeholder as requested
@@ -79,6 +80,7 @@ public class AnalysisController : ControllerBase
         // Transform relative paths to absolute URLs in the response data
         if (response.Data != null)
         {
+            response.Data.OriginalImagePath = TransformToAbsoluteUrl(response.Data.OriginalImagePath);
             response.Data.MaskPath = TransformToAbsoluteUrl(response.Data.MaskPath);
             response.Data.HighlightedPath = TransformToAbsoluteUrl(response.Data.HighlightedPath);
             response.Data.Model3DPath = TransformToAbsoluteUrl("/uploads/models/liver_placeholder.obj"); // Final placeholder as requested

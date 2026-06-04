@@ -48,7 +48,7 @@ public class AnalysisService : IAnalysisService
         // 1. Verify the scan exists
         var scan = await _context.Scans.Include(s => s.Case).FirstOrDefaultAsync(s => s.Id == scanId);
         if (scan == null)
-            throw new Exception("Scan not found.");
+            throw new Exception(await BuildScanNotFoundMessageAsync(scanId, userId, isAdmin));
 
         if (!isAdmin && scan.Case.UserId != userId)
             throw new Exception("Unauthorized to analyze this scan.");
@@ -103,6 +103,8 @@ public class AnalysisService : IAnalysisService
         if (aiResult == null || aiResult.Status != "success")
             throw new Exception("Invalid response received from the AI API.");
 
+        var originalImagePath = await SaveOriginalImageGridAsync(aiResult.OriginalImage, scanId);
+
         // 5. Save Result to Database
         var result = new AnalysisResult
         {
@@ -114,21 +116,63 @@ public class AnalysisService : IAnalysisService
                 ? Math.Round(aiResult.Confidence / 100.0, 4) 
                 : Math.Round(aiResult.Confidence, 4),
             TumorAreaPixels = aiResult.TumorPixels,
+            OriginalImagePath = originalImagePath,
             MaskPath = null,
             HighlightedPath = null,
             Model3DPath = "/uploads/models/liver_placeholder.obj" // Placeholder for 3D
         };
 
+        string? oldOriginalImagePath = null;
         var existing = await _context.AnalysisResults.FirstOrDefaultAsync(a => a.ScanId == scanId);
         if (existing != null)
         {
+            oldOriginalImagePath = existing.OriginalImagePath;
             _context.AnalysisResults.Remove(existing);
         }
 
         _context.AnalysisResults.Add(result);
         await _context.SaveChangesAsync();
 
+        if (!string.IsNullOrWhiteSpace(oldOriginalImagePath))
+        {
+            await _fileStorage.DeleteFileAsync(oldOriginalImagePath);
+        }
+
         return result;
+    }
+
+    private async Task<string> BuildScanNotFoundMessageAsync(Guid suppliedId, Guid userId, bool isAdmin)
+    {
+        var matchingCase = await _context.Cases
+            .AsNoTracking()
+            .Include(c => c.Scans)
+            .FirstOrDefaultAsync(c => c.Id == suppliedId);
+
+        if (matchingCase == null)
+        {
+            _logger.LogWarning("Analysis requested for missing scan id {ScanId}", suppliedId);
+            return $"Scan not found. The analysis endpoint expects a Scan Id, but no scan exists with id '{suppliedId}'.";
+        }
+
+        if (!isAdmin && matchingCase.UserId != userId)
+        {
+            _logger.LogWarning(
+                "Analysis requested with case id {CaseId}, but user {UserId} does not own that case",
+                suppliedId, userId);
+
+            return "Scan not found. The analysis endpoint expects a Scan Id.";
+        }
+
+        var latestScan = matchingCase.Scans
+            .OrderByDescending(s => s.UploadDate)
+            .FirstOrDefault();
+
+        if (latestScan == null)
+        {
+            return $"Scan not found. The supplied id '{suppliedId}' is a Case Id, and this case does not have any uploaded scans yet.";
+        }
+
+        return $"Scan not found. The supplied id '{suppliedId}' is a Case Id. Use the Scan Id '{latestScan.Id}' for this case.";
     }
 
     public async Task<ApiResponse<AnalysisReadDto>> GetAnalysisByScanAsync(Guid userId, bool isDoctor, bool isAdmin, Guid scanId)
@@ -185,6 +229,7 @@ public class AnalysisService : IAnalysisService
         StageLabel = a.StageLabel,
         Confidence = a.Confidence,
         TumorAreaPixels = a.TumorAreaPixels,
+        OriginalImagePath = a.OriginalImagePath,
         MaskPath = a.MaskPath,
         HighlightedPath = a.HighlightedPath,
         Model3DPath = a.Model3DPath
@@ -194,6 +239,38 @@ public class AnalysisService : IAnalysisService
     // CLINICAL RISK ASSESSMENT  (independent from CT Scan pipeline)
     // Calls the Hugging Face ILPD model to evaluate liver disease risk.
     // ══════════════════════════════════════════════════════════════════════
+    private async Task<string?> SaveOriginalImageGridAsync(string? base64Image, Guid scanId)
+    {
+        if (string.IsNullOrWhiteSpace(base64Image))
+            return null;
+
+        var normalizedBase64 = base64Image;
+        var commaIndex = normalizedBase64.IndexOf(',');
+        if (commaIndex >= 0)
+            normalizedBase64 = normalizedBase64[(commaIndex + 1)..];
+
+        byte[] imageBytes;
+        try
+        {
+            imageBytes = Convert.FromBase64String(normalizedBase64);
+        }
+        catch (FormatException ex)
+        {
+            _logger.LogError(ex, "AI API returned an invalid original_image Base64 payload for scan {ScanId}", scanId);
+            throw new Exception("Invalid original image returned from the AI API.");
+        }
+
+        var uploadsRoot = Path.Combine(_env.WebRootPath, "uploads");
+        Directory.CreateDirectory(uploadsRoot);
+
+        var fileName = $"analysis-grid-{scanId}-{Guid.NewGuid():N}.png";
+        var absolutePath = Path.Combine(uploadsRoot, fileName);
+
+        await File.WriteAllBytesAsync(absolutePath, imageBytes);
+
+        return $"/uploads/{fileName}";
+    }
+
     public async Task<RiskAssessmentResponseDto> AssessRiskAsync(RiskAssessmentRequestDto dto)
     {
         var client = _httpClientFactory.CreateClient("RiskApiClient");
@@ -281,4 +358,3 @@ public class AnalysisService : IAnalysisService
         return result;
     }
 }
-

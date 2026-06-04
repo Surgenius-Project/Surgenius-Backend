@@ -21,4 +21,7 @@ public class ScanAnalysisResponseDto
 
     [JsonPropertyName("inference_time_sec")]
     public double InferenceTimeSec { get; set; }
+
+    [JsonPropertyName("original_image")]
+    public string? OriginalImage { get; set; }
 }
