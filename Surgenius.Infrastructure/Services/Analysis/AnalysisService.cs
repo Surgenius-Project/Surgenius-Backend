@@ -64,8 +64,7 @@ public class AnalysisService : IAnalysisService
         var client = _httpClientFactory.CreateClient("AiApiClient");
         client.Timeout = TimeSpan.FromSeconds(60); // 60s timeout for cold starts
 
-        var baseUrl = _configuration["AiApi:CtScanApiBaseUrl"] ?? _configuration["CtScanApiBaseUrl"] ?? "https://moutel258-surgenius-ai.hf.space/";
-        var requestUrl = $"{baseUrl.TrimEnd('/')}/api/v1/analyze-scan";
+        const string requestUrl = "https://moutel258-surgenius-ai.hf.space/api/v1/analyze-scan";
 
         using var form = new MultipartFormDataContent();
         await using var fileStream = new FileStream(absolutePath, FileMode.Open, FileAccess.Read);
@@ -103,7 +102,10 @@ public class AnalysisService : IAnalysisService
         if (aiResult == null || aiResult.Status != "success")
             throw new Exception("Invalid response received from the AI API.");
 
-        var originalImagePath = await SaveOriginalImageGridAsync(aiResult.OriginalImage, scanId);
+        var originalImagePath = await SaveAnalysisImageAsync(aiResult.OriginalImage, scanId, "original_image");
+        var maskPath = await SaveAnalysisImageAsync(aiResult.UnetImage, scanId, "unet_image");
+        var groundTruthImagePath = await SaveAnalysisImageAsync(aiResult.GroundTruthImage, scanId, "ground_truth_image");
+        var highlightedPath = await SaveAnalysisImageAsync(aiResult.DiagnosisImage, scanId, "diagnosis_image");
 
         // 5. Save Result to Database
         var result = new AnalysisResult
@@ -117,25 +119,32 @@ public class AnalysisService : IAnalysisService
                 : Math.Round(aiResult.Confidence, 4),
             TumorAreaPixels = aiResult.TumorPixels,
             OriginalImagePath = originalImagePath,
-            MaskPath = null,
-            HighlightedPath = null,
+            MaskPath = maskPath,
+            GroundTruthImagePath = groundTruthImagePath,
+            HighlightedPath = highlightedPath,
             Model3DPath = "/uploads/models/liver_placeholder.obj" // Placeholder for 3D
         };
 
-        string? oldOriginalImagePath = null;
+        var oldGeneratedPaths = new List<string?>();
         var existing = await _context.AnalysisResults.FirstOrDefaultAsync(a => a.ScanId == scanId);
         if (existing != null)
         {
-            oldOriginalImagePath = existing.OriginalImagePath;
+            oldGeneratedPaths.Add(existing.OriginalImagePath);
+            oldGeneratedPaths.Add(existing.MaskPath);
+            oldGeneratedPaths.Add(existing.GroundTruthImagePath);
+            oldGeneratedPaths.Add(existing.HighlightedPath);
             _context.AnalysisResults.Remove(existing);
         }
 
         _context.AnalysisResults.Add(result);
         await _context.SaveChangesAsync();
 
-        if (!string.IsNullOrWhiteSpace(oldOriginalImagePath))
+        foreach (var oldGeneratedPath in oldGeneratedPaths)
         {
-            await _fileStorage.DeleteFileAsync(oldOriginalImagePath);
+            if (!string.IsNullOrWhiteSpace(oldGeneratedPath))
+            {
+                await _fileStorage.DeleteFileAsync(oldGeneratedPath);
+            }
         }
 
         return result;
@@ -231,6 +240,7 @@ public class AnalysisService : IAnalysisService
         TumorAreaPixels = a.TumorAreaPixels,
         OriginalImagePath = a.OriginalImagePath,
         MaskPath = a.MaskPath,
+        GroundTruthImagePath = a.GroundTruthImagePath,
         HighlightedPath = a.HighlightedPath,
         Model3DPath = a.Model3DPath
     };
@@ -239,10 +249,10 @@ public class AnalysisService : IAnalysisService
     // CLINICAL RISK ASSESSMENT  (independent from CT Scan pipeline)
     // Calls the Hugging Face ILPD model to evaluate liver disease risk.
     // ══════════════════════════════════════════════════════════════════════
-    private async Task<string?> SaveOriginalImageGridAsync(string? base64Image, Guid scanId)
+    private async Task<string> SaveAnalysisImageAsync(string? base64Image, Guid scanId, string fieldName)
     {
         if (string.IsNullOrWhiteSpace(base64Image))
-            return null;
+            throw new Exception($"AI API response is missing '{fieldName}'.");
 
         var normalizedBase64 = base64Image;
         var commaIndex = normalizedBase64.IndexOf(',');
@@ -256,19 +266,12 @@ public class AnalysisService : IAnalysisService
         }
         catch (FormatException ex)
         {
-            _logger.LogError(ex, "AI API returned an invalid original_image Base64 payload for scan {ScanId}", scanId);
-            throw new Exception("Invalid original image returned from the AI API.");
+            _logger.LogError(ex, "AI API returned an invalid {FieldName} Base64 payload for scan {ScanId}", fieldName, scanId);
+            throw new Exception($"Invalid '{fieldName}' image returned from the AI API.");
         }
 
-        var uploadsRoot = Path.Combine(_env.WebRootPath, "uploads");
-        Directory.CreateDirectory(uploadsRoot);
-
-        var fileName = $"analysis-grid-{scanId}-{Guid.NewGuid():N}.png";
-        var absolutePath = Path.Combine(uploadsRoot, fileName);
-
-        await File.WriteAllBytesAsync(absolutePath, imageBytes);
-
-        return $"/uploads/{fileName}";
+        await using var imageStream = new MemoryStream(imageBytes);
+        return await _fileStorage.SaveAnalysisImageAsync(imageStream, $"{fieldName}-{scanId}.png");
     }
 
     public async Task<RiskAssessmentResponseDto> AssessRiskAsync(RiskAssessmentRequestDto dto)

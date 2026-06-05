@@ -45,6 +45,7 @@ public class AnalysisController : ControllerBase
                 TumorAreaPixels = result.TumorAreaPixels,
                 OriginalImagePath = TransformToAbsoluteUrl(result.OriginalImagePath),
                 MaskPath = TransformToAbsoluteUrl(result.MaskPath),
+                GroundTruthImagePath = TransformToAbsoluteUrl(result.GroundTruthImagePath),
                 HighlightedPath = TransformToAbsoluteUrl(result.HighlightedPath),
                 Model3DPath = TransformToAbsoluteUrl("/uploads/models/liver_placeholder.obj") // Final placeholder as requested
             };
@@ -82,6 +83,7 @@ public class AnalysisController : ControllerBase
         {
             response.Data.OriginalImagePath = TransformToAbsoluteUrl(response.Data.OriginalImagePath);
             response.Data.MaskPath = TransformToAbsoluteUrl(response.Data.MaskPath);
+            response.Data.GroundTruthImagePath = TransformToAbsoluteUrl(response.Data.GroundTruthImagePath);
             response.Data.HighlightedPath = TransformToAbsoluteUrl(response.Data.HighlightedPath);
             response.Data.Model3DPath = TransformToAbsoluteUrl("/uploads/models/liver_placeholder.obj"); // Final placeholder as requested
         }

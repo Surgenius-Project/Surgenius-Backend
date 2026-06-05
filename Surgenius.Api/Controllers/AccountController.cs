@@ -106,10 +106,13 @@ public class AccountController : ControllerBase
         {
             var webClientId = _configuration["Authentication:Google:WebClientId"];
             var androidClientId = _configuration["Authentication:Google:AndroidClientId"];
-            
+
+            if (string.IsNullOrWhiteSpace(webClientId) || string.IsNullOrWhiteSpace(androidClientId))
+                return StatusCode(500, new { Message = "Google authentication is not configured correctly." });
+
             var settings = new GoogleJsonWebSignature.ValidationSettings
             {
-                Audience = new List<string> { webClientId!, androidClientId! }
+                Audience = new List<string> { webClientId, androidClientId }
             };
 
             var payload = await GoogleJsonWebSignature.ValidateAsync(request.IdToken, settings);

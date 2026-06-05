@@ -24,4 +24,13 @@ public class ScanAnalysisResponseDto
 
     [JsonPropertyName("original_image")]
     public string? OriginalImage { get; set; }
+
+    [JsonPropertyName("unet_image")]
+    public string? UnetImage { get; set; }
+
+    [JsonPropertyName("ground_truth_image")]
+    public string? GroundTruthImage { get; set; }
+
+    [JsonPropertyName("diagnosis_image")]
+    public string? DiagnosisImage { get; set; }
 }

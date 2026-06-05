@@ -240,6 +240,7 @@ public class CaseService : ICaseService
                     filePathsToDelete.Add(analysis.MaskPath);
                     filePathsToDelete.Add(analysis.HighlightedPath);
                     filePathsToDelete.Add(analysis.OriginalImagePath);
+                    filePathsToDelete.Add(analysis.GroundTruthImagePath);
                     // Model3DPath if dynamic...
                     
                     _context.AnalysisResults.Remove(analysis);

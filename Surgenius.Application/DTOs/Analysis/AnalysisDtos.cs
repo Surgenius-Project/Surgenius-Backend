@@ -17,6 +17,7 @@ public class AnalysisReadDto
     // Visuals
     public string? OriginalImagePath { get; set; }
     public string? MaskPath { get; set; }
+    public string? GroundTruthImagePath { get; set; }
     public string? HighlightedPath { get; set; }
     public string? Model3DPath { get; set; }
 
