@@ -1,18 +1,43 @@
+using MailKit.Net.Smtp;
+using MailKit.Security;
+using Microsoft.Extensions.Options;
+using MimeKit;
 using Surgenius.Application.Interfaces.Email;
+using Surgenius.Application.Settings;
 
 namespace Surgenius.Infrastructure.Services.Email;
 
 public class EmailService : IEmailService
 {
-    public Task SendEmailAsync(string to, string subject, string body)
-    {
-        // Mock email sending - log to console
-        Console.WriteLine("\n[EMAIL MOCK]");
-        Console.WriteLine($"To: {to}");
-        Console.WriteLine($"Subject: {subject}");
-        Console.WriteLine($"Body: {body}");
-        Console.WriteLine("[END EMAIL MOCK]\n");
+    private readonly EmailSettings _emailSettings;
 
-        return Task.CompletedTask;
+    public EmailService(IOptions<EmailSettings> emailSettings)
+    {
+        _emailSettings = emailSettings.Value;
+    }
+
+    public async Task SendEmailAsync(string to, string subject, string body)
+    {
+        var message = new MimeMessage();
+        message.From.Add(new MailboxAddress(_emailSettings.SenderName, _emailSettings.SenderEmail));
+        message.To.Add(MailboxAddress.Parse(to));
+        message.Subject = subject;
+
+        var builder = new BodyBuilder
+        {
+            HtmlBody = body
+        };
+        message.Body = builder.ToMessageBody();
+
+        using var smtp = new SmtpClient();
+
+        await smtp.ConnectAsync(
+            _emailSettings.SmtpServer,
+            _emailSettings.Port,
+            _emailSettings.UseSsl ? SecureSocketOptions.StartTls : SecureSocketOptions.Auto);
+
+        await smtp.AuthenticateAsync(_emailSettings.Username, _emailSettings.Password);
+        await smtp.SendAsync(message);
+        await smtp.DisconnectAsync(true);
     }
 }

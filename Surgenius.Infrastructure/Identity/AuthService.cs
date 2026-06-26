@@ -103,15 +103,42 @@ public class AuthService : IAuthService
         if (user == null)
             return ApiResponse<string>.Failure("User not found.");
 
-        var otpCode = new Random().Next(1000, 9999).ToString();
+        var otpCode = new Random().Next(100000, 999999).ToString();
         user.OtpCode = otpCode;
         user.OtpExpiry = System.DateTime.UtcNow.AddMinutes(15);
         await _userManager.UpdateAsync(user);
 
-        await _emailService.SendEmailAsync(user.Email, "Reset Password Verification Code", $"Your password reset verification code is: {otpCode}");
+        var htmlBody = $@"
+            <div style=""font-family: 'Segoe UI', Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 32px; background-color: #ffffff; border-radius: 12px; border: 1px solid #e5e7eb;"">
+                <div style=""text-align: center; margin-bottom: 24px;"">
+                    <h1 style=""color: #1e293b; font-size: 24px; margin: 0;"">Surgenius</h1>
+                    <p style=""color: #64748b; font-size: 14px; margin-top: 4px;"">Password Reset Request</p>
+                </div>
+                <hr style=""border: none; border-top: 1px solid #e5e7eb; margin: 16px 0;"" />
+                <p style=""color: #334155; font-size: 15px; line-height: 1.6;"">
+                    Hello <strong>{user.FullName}</strong>,
+                </p>
+                <p style=""color: #334155; font-size: 15px; line-height: 1.6;"">
+                    We received a request to reset your password. Use the verification code below to proceed:
+                </p>
+                <div style=""text-align: center; margin: 28px 0;"">
+                    <span style=""display: inline-block; font-size: 32px; font-weight: 700; letter-spacing: 8px; color: #0f172a; background-color: #f1f5f9; padding: 16px 32px; border-radius: 8px; border: 2px dashed #94a3b8;"">
+                        {otpCode}
+                    </span>
+                </div>
+                <p style=""color: #64748b; font-size: 13px; line-height: 1.6; text-align: center;"">
+                    This code will expire in <strong>15 minutes</strong>.<br />
+                    If you didn't request a password reset, please ignore this email.
+                </p>
+                <hr style=""border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;"" />
+                <p style=""color: #94a3b8; font-size: 12px; text-align: center; margin: 0;"">
+                    &copy; {System.DateTime.UtcNow.Year} Surgenius. All rights reserved.
+                </p>
+            </div>";
 
-        // TODO: Remove OTP from response body before production — included here for testing only.
-        return ApiResponse<string>.Success(otpCode, "Verification code has been sent to your email.");
+        await _emailService.SendEmailAsync(user.Email!, "Surgenius — Password Reset Verification Code", htmlBody);
+
+        return ApiResponse<string>.Success(null!, "Verification code has been sent to your email.");
     }
 
     public async Task<ApiResponse<string>> VerifyCodeAsync(VerifyCodeRequestDto request)

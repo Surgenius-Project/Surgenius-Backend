@@ -13,6 +13,7 @@ using Surgenius.Infrastructure.Services.Scans;
 using Surgenius.Infrastructure.Services.Storage;
 using Surgenius.Domain.Models;
 using Surgenius.Infrastructure.Data.Context;
+using Surgenius.Application.Settings;
 using Surgenius.Application.Interfaces.Analysis;
 using Surgenius.Infrastructure.Services.Analysis;
 using Surgenius.Application.Interfaces.Cases;
@@ -44,6 +45,7 @@ public static class IdentityConfiguration
 
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<ITokenService, TokenService>();
+        services.Configure<EmailSettings>(configuration.GetSection("EmailSettings"));
         services.AddScoped<IEmailService, EmailService>();
         services.AddScoped<ICaseService, CaseService>();
         services.AddScoped<IScanService, ScanService>();
