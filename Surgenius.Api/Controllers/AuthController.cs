@@ -1,6 +1,7 @@
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Surgenius.Api.Extensions;
 using Surgenius.Application.DTOs.Auth.Login;
 using Surgenius.Application.DTOs.Auth.Register;
 using Surgenius.Application.DTOs.Auth.Password;
@@ -71,10 +72,22 @@ public class AuthController : ControllerBase
         return Ok(response);
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpPost("assign-role")]
     public async Task<IActionResult> AssignRole([FromBody] AssignRoleRequestDto request)
     {
+        if (request.UserId == System.Guid.Empty)
+        {
+            try
+            {
+                request.UserId = User.GetUserId();
+            }
+            catch
+            {
+                // Let service handle validation if claim is absent
+            }
+        }
+
         var response = await _authService.AssignRoleAsync(request);
         if (!response.IsSuccess)
             return BadRequest(response);

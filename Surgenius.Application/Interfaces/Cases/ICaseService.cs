@@ -30,4 +30,9 @@ public interface ICaseService
     /// Deletes a case and all its associated data (scans, analysis, files).
     /// </summary>
     Task<ApiResponse<bool>> DeleteCaseAsync(Guid userId, bool isAdmin, Guid caseId);
+
+    /// <summary>
+    /// Returns the cases owned by the Doctor assigned to the specified Student.
+    /// </summary>
+    Task<ApiResponse<IEnumerable<CaseResponseDto>>> GetStudentDoctorCasesAsync(Guid studentId);
 }

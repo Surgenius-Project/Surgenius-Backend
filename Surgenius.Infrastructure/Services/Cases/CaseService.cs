@@ -99,8 +99,6 @@ public class CaseService : ICaseService
         // Apply Search Filter (Patient Name)
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
-           // query = query.Where(c => c.PatientName.Contains(searchTerm));
-
             query = query.Where(c => c.PatientName.ToLower().Contains(searchTerm.ToLower()));
         }
 
@@ -270,5 +268,40 @@ public class CaseService : ICaseService
         {
             return ApiResponse<bool>.Failure($"An error occurred during deletion: {ex.Message}");
         }
+    }
+
+    public async Task<ApiResponse<IEnumerable<CaseResponseDto>>> GetStudentDoctorCasesAsync(Guid studentId)
+    {
+        var student = await _context.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == studentId);
+
+        if (student == null)
+            return ApiResponse<IEnumerable<CaseResponseDto>>.Failure("Student account not found.");
+
+        if (student.DoctorId == null)
+            return ApiResponse<IEnumerable<CaseResponseDto>>.Failure("No doctor assigned to this student.");
+
+        var doctorId = student.DoctorId.Value;
+
+        var cases = await _context.Cases
+            .AsNoTracking()
+            .Where(c => c.UserId == doctorId)
+            .OrderByDescending(c => c.CreationDate)
+            .Select(c => new CaseResponseDto
+            {
+                Id = c.Id,
+                PatientName = c.PatientName,
+                Diagnosis = c.Scans
+                    .SelectMany(s => _context.AnalysisResults.Where(a => a.ScanId == s.Id))
+                    .Select(a => a.StageLabel)
+                    .FirstOrDefault() ?? "Pending",
+                Status = c.Scans.Any(s => _context.AnalysisResults.Any(a => a.ScanId == s.Id))
+                    ? "Completed"
+                    : (c.Scans.Any() ? "Pending Analysis" : "Pending Scan")
+            })
+            .ToListAsync();
+
+        return ApiResponse<IEnumerable<CaseResponseDto>>.Success(cases);
     }
 }

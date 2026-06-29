@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -5,6 +6,7 @@ using Microsoft.AspNetCore.Identity;
 using Surgenius.Application.Models.Responses;
 using Surgenius.Application.Interfaces.Auth;
 using Surgenius.Domain.Models;
+using Surgenius.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
 using Surgenius.Application.Interfaces.Email;
@@ -195,15 +197,62 @@ public class AuthService : IAuthService
         if (user == null)
             return ApiResponse<string>.Failure("User not found.");
 
-        var result = await _userManager.AddToRoleAsync(user, request.RoleName);
+        var roleName = request.RoleName;
+        if (string.IsNullOrWhiteSpace(roleName))
+            return ApiResponse<string>.Failure("Role name is required.");
 
-        if (!result.Succeeded)
+        if (!roleName.Equals("Doctor", StringComparison.OrdinalIgnoreCase) && 
+            !roleName.Equals("Student", StringComparison.OrdinalIgnoreCase) &&
+            !roleName.Equals("Admin", StringComparison.OrdinalIgnoreCase))
         {
-            var errors = result.Errors.Select(e => e.Description).ToList();
-            return ApiResponse<string>.Failure("Failed to assign role.", errors);
+            return ApiResponse<string>.Failure("Invalid role name. Must be 'Doctor', 'Student', or 'Admin'.");
         }
 
-        return ApiResponse<string>.Success($"Role '{request.RoleName}' assigned successfully.");
+        if (roleName.Equals("Doctor", StringComparison.OrdinalIgnoreCase)) roleName = "Doctor";
+        else if (roleName.Equals("Student", StringComparison.OrdinalIgnoreCase)) roleName = "Student";
+        else if (roleName.Equals("Admin", StringComparison.OrdinalIgnoreCase)) roleName = "Admin";
+
+        if (roleName == "Doctor")
+        {
+            user.UserType = UserType.Doctor;
+            if (string.IsNullOrEmpty(user.InviteCode))
+            {
+                user.InviteCode = GenerateUniqueInviteCode(user.FullName ?? user.Email ?? "DOC");
+            }
+        }
+        else if (roleName == "Student")
+        {
+            user.UserType = UserType.Student;
+            if (!string.IsNullOrEmpty(request.InviteCode))
+            {
+                var doctor = await _userManager.Users.FirstOrDefaultAsync(u => u.InviteCode == request.InviteCode && u.UserType == UserType.Doctor);
+                if (doctor == null)
+                {
+                    return ApiResponse<string>.Failure("Invalid doctor invite code.");
+                }
+                user.DoctorId = doctor.Id;
+            }
+        }
+
+        var updateResult = await _userManager.UpdateAsync(user);
+        if (!updateResult.Succeeded)
+        {
+            var errors = updateResult.Errors.Select(e => e.Description).ToList();
+            return ApiResponse<string>.Failure("Failed to update user information.", errors);
+        }
+
+        var currentRoles = await _userManager.GetRolesAsync(user);
+        if (!currentRoles.Contains(roleName))
+        {
+            var roleResult = await _userManager.AddToRoleAsync(user, roleName);
+            if (!roleResult.Succeeded)
+            {
+                var errors = roleResult.Errors.Select(e => e.Description).ToList();
+                return ApiResponse<string>.Failure("Failed to assign role.", errors);
+            }
+        }
+
+        return ApiResponse<string>.Success($"Role '{roleName}' assigned successfully.");
     }
 
     

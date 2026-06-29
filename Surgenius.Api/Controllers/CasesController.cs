@@ -91,4 +91,23 @@ public class CasesController : ControllerBase
 
         return Ok(response);
     }
+
+    [HttpGet("student-doctor-cases")]
+    [Authorize(Roles = "Student")]
+    public async Task<IActionResult> GetStudentDoctorCases()
+    {
+        var studentId = User.GetUserId();
+        var response = await _caseService.GetStudentDoctorCasesAsync(studentId);
+
+        if (!response.IsSuccess)
+        {
+            if (response.Message == "Student account not found." || response.Message == "No doctor assigned to this student.")
+            {
+                return NotFound(response);
+            }
+            return BadRequest(response);
+        }
+
+        return Ok(response);
+    }
 }
