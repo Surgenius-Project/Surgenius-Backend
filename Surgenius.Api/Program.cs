@@ -144,13 +144,20 @@ namespace Surgenius.Api
                 options.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
             });
 
-            // Setup static files with custom content types (for .obj files etc)
+            // Setup static files with custom content types (for .obj and .glb files etc)
             var provider = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider();
             provider.Mappings[".obj"] = "application/octet-stream";
+            provider.Mappings[".glb"] = "model/gltf-binary";
 
             app.UseStaticFiles(new StaticFileOptions
             {
-                ContentTypeProvider = provider
+                ContentTypeProvider = provider,
+                OnPrepareResponse = ctx =>
+                {
+                    ctx.Context.Response.Headers.Append("Access-Control-Allow-Origin", "*");
+                    ctx.Context.Response.Headers.Append("Access-Control-Allow-Headers",
+                        "Origin, X-Requested-With, Content-Type, Accept");
+                }
             });
             app.UseHttpsRedirection();
 

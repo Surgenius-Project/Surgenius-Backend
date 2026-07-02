@@ -139,7 +139,7 @@ public class AnalysisService : IAnalysisService
             MaskPath = maskPath,
             GroundTruthImagePath = groundTruthImagePath,
             HighlightedPath = highlightedPath,
-            Model3DPath = "/uploads/models/liver_placeholder.obj" // Placeholder for 3D
+            Model3DPath = "/uploads/models/liver_placeholder.glb" // Placeholder for 3D
         };
 
         var oldGeneratedPaths = new List<string?>();

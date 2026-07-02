@@ -47,7 +47,7 @@ public class AnalysisController : ControllerBase
                 MaskPath = TransformToAbsoluteUrl(result.MaskPath),
                 GroundTruthImagePath = TransformToAbsoluteUrl(result.GroundTruthImagePath),
                 HighlightedPath = TransformToAbsoluteUrl(result.HighlightedPath),
-                Model3DPath = TransformToAbsoluteUrl("/uploads/models/liver_placeholder.obj") // Final placeholder as requested
+                Model3DPath = TransformToAbsoluteUrl("/uploads/models/liver_placeholder.glb") // Final placeholder as requested
             };
 
             var response = ApiResponse<AnalysisReadDto>.Success(dto, "Analysis completed successfully.");
@@ -85,7 +85,7 @@ public class AnalysisController : ControllerBase
             response.Data.MaskPath = TransformToAbsoluteUrl(response.Data.MaskPath);
             response.Data.GroundTruthImagePath = TransformToAbsoluteUrl(response.Data.GroundTruthImagePath);
             response.Data.HighlightedPath = TransformToAbsoluteUrl(response.Data.HighlightedPath);
-            response.Data.Model3DPath = TransformToAbsoluteUrl("/uploads/models/liver_placeholder.obj"); // Final placeholder as requested
+            response.Data.Model3DPath = TransformToAbsoluteUrl("/uploads/models/liver_placeholder.glb"); // Final placeholder as requested
         }
 
         return Ok(response);
