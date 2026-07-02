@@ -52,7 +52,16 @@ public class LocalFileStorageService : IFileStorageService
 
         try
         {
-            var cleanPath = relativePath.TrimStart('/').Replace("/", Path.DirectorySeparatorChar.ToString());
+            var pathToDelete = relativePath;
+
+            // If an absolute URL was stored (e.g. local Monster Server URL returned
+            // by the augmented-scan proxy), extract only the path portion.
+            if (Uri.TryCreate(relativePath, UriKind.Absolute, out var uri))
+            {
+                pathToDelete = uri.AbsolutePath;
+            }
+
+            var cleanPath = pathToDelete.TrimStart('/').Replace("/", Path.DirectorySeparatorChar.ToString());
             var absolutePath = Path.Combine(_webRootPath, cleanPath);
 
             if (File.Exists(absolutePath))

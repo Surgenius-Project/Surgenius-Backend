@@ -6,6 +6,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -25,6 +26,7 @@ public class AnalysisService : IAnalysisService
     private readonly IConfiguration _configuration;
     private readonly IFileStorageService _fileStorage;
     private readonly IWebHostEnvironment _env;
+    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<AnalysisService> _logger;
 
     public AnalysisService(
@@ -33,6 +35,7 @@ public class AnalysisService : IAnalysisService
         IConfiguration configuration,
         IFileStorageService fileStorage,
         IWebHostEnvironment env,
+        IHttpContextAccessor httpContextAccessor,
         ILogger<AnalysisService> logger)
     {
         _context = context;
@@ -40,6 +43,7 @@ public class AnalysisService : IAnalysisService
         _configuration = configuration;
         _fileStorage = fileStorage;
         _env = env;
+        _httpContextAccessor = httpContextAccessor;
         _logger = logger;
     }
 
@@ -102,10 +106,23 @@ public class AnalysisService : IAnalysisService
         if (aiResult == null || aiResult.Status != "success")
             throw new Exception("Invalid response received from the AI API.");
 
-        var originalImagePath = await SaveAnalysisImageAsync(aiResult.OriginalImage, scanId, "original_image");
-        var maskPath = await SaveAnalysisImageAsync(aiResult.UnetImage, scanId, "unet_image");
-        var groundTruthImagePath = await SaveAnalysisImageAsync(aiResult.GroundTruthImage, scanId, "ground_truth_image");
-        var highlightedPath = await SaveAnalysisImageAsync(aiResult.DiagnosisImage, scanId, "diagnosis_image");
+        // Download the 4 augmented images locally and return Monster Server URLs
+        // to Flutter. Doing this in parallel avoids the slow/timeout-prone external
+        // links (Hugging Face / Render) being fetched by the client directly.
+        var downloadTasks = new[]
+        {
+            DownloadAndSaveImageAsync(aiResult.OriginalImage, "original_image"),
+            DownloadAndSaveImageAsync(aiResult.UnetImage, "unet_image"),
+            DownloadAndSaveImageAsync(aiResult.GroundTruthImage, "ground_truth_image"),
+            DownloadAndSaveImageAsync(aiResult.DiagnosisImage, "diagnosis_image")
+        };
+
+        var paths = await Task.WhenAll(downloadTasks);
+
+        var originalImagePath = paths[0];
+        var maskPath = paths[1];
+        var groundTruthImagePath = paths[2];
+        var highlightedPath = paths[3];
 
         // 5. Save Result to Database
         var result = new AnalysisResult
@@ -114,7 +131,7 @@ public class AnalysisService : IAnalysisService
             ScanId = scanId,
             StageNumeric = aiResult.TumorDetected ? 1 : 0,
             StageLabel = aiResult.Diagnosis,
-            Confidence = aiResult.Confidence > 1.0 
+            Confidence = aiResult.Confidence > 1.0
                 ? Math.Round(aiResult.Confidence / 100.0, 4) 
                 : Math.Round(aiResult.Confidence, 4),
             TumorAreaPixels = aiResult.TumorPixels,
@@ -246,32 +263,93 @@ public class AnalysisService : IAnalysisService
     };
 
     // ══════════════════════════════════════════════════════════════════════
-    // CLINICAL RISK ASSESSMENT  (independent from CT Scan pipeline)
-    // Calls the Hugging Face ILPD model to evaluate liver disease risk.
+    // LOCAL IMAGE PROXY
+    // Downloads augmented scan images from external AI model links into
+    // wwwroot/uploads/augmented-scans and returns local Monster Server URLs.
     // ══════════════════════════════════════════════════════════════════════
-    private async Task<string> SaveAnalysisImageAsync(string? base64Image, Guid scanId, string fieldName)
+    private async Task<string> DownloadAndSaveImageAsync(string? imageUrl, string fieldName)
     {
-        if (string.IsNullOrWhiteSpace(base64Image))
-            throw new Exception($"AI API response is missing '{fieldName}'.");
-
-        var normalizedBase64 = base64Image;
-        var commaIndex = normalizedBase64.IndexOf(',');
-        if (commaIndex >= 0)
-            normalizedBase64 = normalizedBase64[(commaIndex + 1)..];
-
-        byte[] imageBytes;
-        try
+        if (string.IsNullOrWhiteSpace(imageUrl))
         {
-            imageBytes = Convert.FromBase64String(normalizedBase64);
-        }
-        catch (FormatException ex)
-        {
-            _logger.LogError(ex, "AI API returned an invalid {FieldName} Base64 payload for scan {ScanId}", fieldName, scanId);
-            throw new Exception($"Invalid '{fieldName}' image returned from the AI API.");
+            _logger.LogError("AI API response is missing '{FieldName}' image URL/data", fieldName);
+            throw new Exception($"AI API response is missing '{fieldName}' image URL/data.");
         }
 
-        await using var imageStream = new MemoryStream(imageBytes);
-        return await _fileStorage.SaveAnalysisImageAsync(imageStream, $"{fieldName}-{scanId}.png");
+        // 1. Ensure the augmented-scans folder exists
+        var augmentedScansFolder = Path.Combine(_env.WebRootPath, "uploads", "augmented-scans");
+        if (!Directory.Exists(augmentedScansFolder))
+            Directory.CreateDirectory(augmentedScansFolder);
+
+        // 2. Generate a unique filename and resolve the absolute disk path
+        var fileName = $"{Guid.NewGuid()}.jpg";
+        var absolutePath = Path.Combine(augmentedScansFolder, fileName);
+
+        // Check if string contains "base64," or does NOT start with "http"
+        bool isBase64 = imageUrl.Contains("base64,", StringComparison.OrdinalIgnoreCase) || 
+                         !imageUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase);
+
+        if (isBase64)
+        {
+            _logger.LogInformation("Processing Base64 image data for '{FieldName}'", fieldName);
+
+            // Clean the header prefix if present (e.g., "data:image/jpeg;base64,")
+            var base64Data = imageUrl;
+            var base64Index = base64Data.IndexOf("base64,", StringComparison.OrdinalIgnoreCase);
+            if (base64Index >= 0)
+            {
+                base64Data = base64Data.Substring(base64Index + "base64, ".Trim().Length);
+            }
+            base64Data = base64Data.Trim();
+
+            try
+            {
+                var imageBytes = Convert.FromBase64String(base64Data);
+                await File.WriteAllBytesAsync(absolutePath, imageBytes);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to parse or save Base64 image for '{FieldName}'", fieldName);
+                throw new Exception($"Failed to process Base64 image for '{fieldName}'.", ex);
+            }
+        }
+        else
+        {
+            // 3. Download the image bytes asynchronously via HttpClient
+            var client = _httpClientFactory.CreateClient();
+            client.Timeout = TimeSpan.FromSeconds(60);
+
+            _logger.LogInformation("Downloading {FieldName} from {Url}", fieldName, imageUrl);
+
+            try
+            {
+                using var response = await client.GetAsync(imageUrl);
+                response.EnsureSuccessStatusCode();
+
+                var imageBytes = await response.Content.ReadAsByteArrayAsync();
+                await File.WriteAllBytesAsync(absolutePath, imageBytes);
+            }
+            catch (TaskCanceledException)
+            {
+                _logger.LogError("Download of '{FieldName}' from {Url} timed out", fieldName, imageUrl);
+                throw new Exception($"Download of '{fieldName}' image timed out. Please try again later.");
+            }
+            catch (HttpRequestException ex)
+            {
+                _logger.LogError(ex, "Failed to download '{FieldName}' from {Url}", fieldName, imageUrl);
+                throw new Exception($"Failed to download '{fieldName}' image from the AI model.");
+            }
+        }
+
+        // 4. Build the local response URL from the current request scheme + host
+        var request = _httpContextAccessor.HttpContext?.Request;
+        if (request == null)
+        {
+            _logger.LogWarning("HttpContext is not available; returning relative path for {FieldName}", fieldName);
+            return $"/uploads/augmented-scans/{fileName}";
+        }
+
+        var localUrl = $"{request.Scheme}://{request.Host}/uploads/augmented-scans/{fileName}";
+        return localUrl;
     }
 
     public async Task<RiskAssessmentResponseDto> AssessRiskAsync(RiskAssessmentRequestDto dto)

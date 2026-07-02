@@ -6,6 +6,7 @@ using Surgenius.Infrastructure.Configurations;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using System.Text.Json.Serialization;
 using Surgenius.Api.Middlewares;
 
 using System.Threading.Tasks;
@@ -20,7 +21,11 @@ namespace Surgenius.Api
 
             // Add services to the container. 
 
-            builder.Services.AddControllers();
+            builder.Services.AddControllers()
+                .AddJsonOptions(options =>
+                {
+                    options.JsonSerializerOptions.NumberHandling = JsonNumberHandling.AllowReadingFromString;
+                });
             builder.Services.AddHttpContextAccessor();
 
             // Configure CORS
