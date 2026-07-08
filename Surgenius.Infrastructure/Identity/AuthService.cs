@@ -17,6 +17,7 @@ using Surgenius.Application.DTOs.Auth.Password;
 using Surgenius.Application.DTOs.Auth.Register;
 using Surgenius.Application.DTOs.Auth.Responses;
 using Surgenius.Application.DTOs.Auth.Roles;
+using Microsoft.AspNetCore.Authentication;
 
 namespace Surgenius.Infrastructure.Identity;
 
@@ -255,7 +256,15 @@ public class AuthService : IAuthService
         return ApiResponse<string>.Success($"Role '{roleName}' assigned successfully.");
     }
 
-    
+    public async Task<ApiResponse<string>> LogoutAsync()
+    {
+        var httpContext = _httpContextAccessor.HttpContext;
+        if (httpContext != null)
+        {
+            await httpContext.SignOutAsync(Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationDefaults.AuthenticationScheme);
+        }
+        return ApiResponse<string>.Success(null!, "Logged out successfully.");
+    }
 
     private async Task<ApiResponse<AuthResponseDto>> GenerateAuthResponse(ApplicationUser user)
     {

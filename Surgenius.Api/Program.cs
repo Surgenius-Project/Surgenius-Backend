@@ -109,6 +109,16 @@ namespace Surgenius.Api
                 options.ClientId = builder.Configuration["Authentication:Google:WebClientId"] ?? "PLACEHOLDER_CLIENT_ID";
                 options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? "PLACEHOLDER_CLIENT_SECRET";
                 options.CallbackPath = "/signin-google";
+                options.Events.OnRedirectToAuthorizationEndpoint = context =>
+                {
+                    var redirectUri = context.RedirectUri;
+                    if (!redirectUri.Contains("prompt="))
+                    {
+                        redirectUri += redirectUri.Contains("?") ? "&prompt=select_account" : "?prompt=select_account";
+                    }
+                    context.Response.Redirect(redirectUri);
+                    return Task.CompletedTask;
+                };
             });
 
             builder.Services.AddAuthorization(options =>
@@ -157,6 +167,10 @@ namespace Surgenius.Api
                     ctx.Context.Response.Headers.Append("Access-Control-Allow-Origin", "*");
                     ctx.Context.Response.Headers.Append("Access-Control-Allow-Headers",
                         "Origin, X-Requested-With, Content-Type, Accept");
+                    // Prevent caching of 3D models in development/testing
+                    ctx.Context.Response.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");
+                    ctx.Context.Response.Headers.Append("Pragma", "no-cache");
+                    ctx.Context.Response.Headers.Append("Expires", "0");
                 }
             });
             app.UseHttpsRedirection();

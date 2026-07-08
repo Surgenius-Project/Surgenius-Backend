@@ -38,7 +38,7 @@ public class TokenService : ITokenService
             issuer: _configuration["Jwt:Issuer"],
             audience: _configuration["Jwt:Audience"],
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(15), // Short-lived access token
+            expires: DateTime.UtcNow.AddMinutes(45), // Short-lived access token
             signingCredentials: creds
         );
 

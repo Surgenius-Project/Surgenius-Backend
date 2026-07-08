@@ -1,13 +1,18 @@
+# Wavefront Material Library for Surgenius Liver
 newmtl LiverMaterial
 Ka 0.15 0.05 0.05
 Kd 0.55 0.15 0.15
-Ks 0.2 0.2 0.2
-Ns 10.0
+Ks 0.3 0.3 0.3
+Ns 15.0
 illum 2
+map_Kd liver_color.png
+map_Bump -bm 1.0 liver_normal.png
 
 newmtl TumorMaterial
 Ka 0.1 0.15 0.05
 Kd 0.3 0.8 0.2
-Ks 0.4 0.4 0.4
-Ns 20.0
+Ks 0.2 0.2 0.2
+Ns 8.0
 illum 2
+map_Kd tumor_color.png
+map_Bump -bm 1.0 tumor_normal.png

@@ -16,4 +16,5 @@ public interface IAuthService
     Task<ApiResponse<string>> VerifyCodeAsync(VerifyCodeRequestDto request);
     Task<ApiResponse<string>> ResetPasswordAsync(ResetPasswordRequestDto request);
     Task<ApiResponse<string>> AssignRoleAsync(AssignRoleRequestDto request);
+    Task<ApiResponse<string>> LogoutAsync();
 }
